@@ -163,7 +163,49 @@ try{
   logActivity('สรุปงาน Facebook','facebook',{type:type});
   toast('สร้างสรุปแล้ว');
 }catch(e){cont.textContent='❌ '+e.message;}}
-function addFBItem(){var c=document.getElementById('fbb-items');var idx=c.querySelectorAll('.fb-row').length+1;var div=document.createElement('div');div.className='form-row mt-2 fb-row';div.innerHTML='<div style="flex:2"><label class="form-label">#'+idx+'</label><select class="fb-type"><option value="like-mix">👍 ไลค์</option><option value="like-th1">👍 #TH1</option><option value="like-th2">👍 #TH2</option><option value="share">🔗 แชร์</option><option value="view">👁️ วิว</option></select></div><div style="flex:1"><label class="form-label">จำนวน</label><input type="number" class="fb-amt" placeholder="1000"/></div><div style="flex:1"><label class="form-label">เริ่ม</label><input type="number" class="fb-st" placeholder="auto"/></div><div style="width:40px;padding-top:20px"><button class="del-btn" onclick="this.closest(\\'.fb-row\\').remove()">🗑️</button></div>';c.appendChild(div);}
+function addFBItem(){
+  var c=document.getElementById('fbb-items');
+  var rows=c.querySelectorAll('.fb-row');
+  if(rows.length>=3){toast('สูงสุด 3 รายการ','error');return;}
+  
+  // หาว่าเลือกอะไรไปแล้ว
+  var used=[];
+  rows.forEach(function(r){used.push(r.querySelector('.fb-type').value);});
+  
+  // สร้าง options เฉพาะที่ยังไม่ได้เลือก
+  var allOpts=[{v:'like',t:'👍 ไลค์'},{v:'view',t:'👁️ วิว'},{v:'share',t:'🔗 แชร์'}];
+  var opts='';
+  allOpts.forEach(function(o){if(used.indexOf(o.v)===-1)opts+='<option value="'+o.v+'">'+o.t+'</option>';});
+  
+  if(!opts){toast('เลือกครบทุกประเภทแล้ว','error');return;}
+  
+  var idx=rows.length+1;
+  var div=document.createElement('div');
+  div.className='form-row mt-2 fb-row';
+  div.innerHTML='<div style="flex:2"><label class="form-label">#'+idx+'</label><select class="fb-type" onchange="updateFBOptions()">'+opts+'</select></div><div style="flex:1"><label class="form-label">จำนวน</label><input type="number" class="fb-amt" placeholder="1000"/></div><div style="flex:1"><label class="form-label">เริ่ม</label><input type="number" class="fb-st" placeholder="auto"/></div><div style="width:40px;padding-top:20px"><button class="del-btn" onclick="removeFBItem(this)">🗑️</button></div>';
+  c.appendChild(div);
+  updateFBOptions();
+}
+function removeFBItem(btn){btn.closest('.fb-row').remove();updateFBOptions();reindexFBItems();}
+function reindexFBItems(){var rows=document.querySelectorAll('.fb-row');rows.forEach(function(r,i){r.querySelector('.form-label').textContent='#'+(i+1);});}
+function updateFBOptions(){
+  var rows=document.querySelectorAll('.fb-row');
+  var used=[];
+  rows.forEach(function(r){used.push(r.querySelector('.fb-type').value);});
+  
+  var allOpts=[{v:'like',t:'👍 ไลค์'},{v:'view',t:'👁️ วิว'},{v:'share',t:'🔗 แชร์'}];
+  rows.forEach(function(r){
+    var sel=r.querySelector('.fb-type');
+    var cur=sel.value;
+    var opts='';
+    allOpts.forEach(function(o){
+      if(o.v===cur||used.indexOf(o.v)===-1){
+        opts+='<option value="'+o.v+'"'+(o.v===cur?' selected':'')+'>'+o.t+'</option>';
+      }
+    });
+    sel.innerHTML=opts;
+  });
+}
 async function handleGenFBBatch(){var url=document.getElementById('fbb-url').value;var card=document.getElementById('fbb-card');var cont=document.getElementById('fbb-content');var txt=document.getElementById('fbb-text');var rows=document.querySelectorAll('.fb-row');if(!url||!rows.length){toast('กรุณากรอกข้อมูล','error');return;}card.classList.remove('hidden');showLoading(cont,'🔍 กำลังดึงข้อมูล...');
 try{
   var isVideo=url.includes('/reel/')||url.includes('/videos/')||url.includes('/watch')||url.includes('fb.watch');
@@ -186,11 +228,11 @@ try{
     var type=r.querySelector('.fb-type').value;
     var amt=Number(r.querySelector('.fb-amt').value)||0;
     var st=Number(r.querySelector('.fb-st').value)||0;
-    var label='',tl='';
-    if(type.indexOf('like')===0){st=st||stats.reactions||0;label='ไลค์';tl=type==='like-th1'?' #TH1':type==='like-th2'?' #TH2':'';}
+    var label='';
+    if(type==='like'){st=st||stats.reactions||0;label='ไลค์';}
     else if(type==='share'){st=st||stats.shares||0;label='แชร์';}
-    else{st=st||stats.views||0;label='วิว';}
-    lines.push('เริ่ม '+fmt(st)+' + '+fmt(amt)+' = '+fmt(st+amt)+'++ '+label+tl);
+    else if(type==='view'){st=st||stats.views||0;label='วิว';}
+    lines.push('เริ่ม '+fmt(st)+' + '+fmt(amt)+' = '+fmt(st+amt)+'++ '+label);
   });
   cont.textContent=lines.join(NL);
   txt.value=lines.join(NL);
