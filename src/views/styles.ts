@@ -170,6 +170,10 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .video-stat-lbl{display:block;font-size:11px;color:var(--dim);margin-top:4px}
 @media(max-width:768px){.video-stats-grid{grid-template-columns:repeat(2,1fr)}.video-stat{padding:12px}.video-stat-val{font-size:16px}}
 
+/* Iframe Container */
+.iframe-container{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;height:calc(100vh - 200px);min-height:500px}
+.iframe-container iframe{width:100%;height:100%;border:none}
+
 /* Activity Logs - New Design */
 .logs-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
 .logs-stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;display:flex;align-items:center;gap:16px;transition:all .2s}

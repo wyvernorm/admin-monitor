@@ -41,6 +41,7 @@ export function renderIndex(): string {
       <div class="menu-item" data-page="facebook" onclick="mobileGoTo('facebook')"><span class="menu-icon">📘</span>Facebook</div>
       <div class="menu-item" data-page="instagram" onclick="mobileGoTo('instagram')"><span class="menu-icon">📷</span>Instagram</div>
       <div class="menu-item" data-page="logs" onclick="mobileGoTo('logs')"><span class="menu-icon">📜</span>Activity Logs</div>
+      <div class="menu-item" data-page="calendar" onclick="mobileGoTo('calendar')"><span class="menu-icon">📅</span>ปฏิทินแจ้งเตือน</div>
     </div>
     <aside class="sidebar">
       <div class="logo-box"><div class="logo-icon">📊</div><div><div class="logo-text">Admin Monitor</div><div class="logo-ver">v2.6</div></div></div>
@@ -57,6 +58,7 @@ export function renderIndex(): string {
       </div>
       <div class="menu-group"><div class="menu-label">ระบบ</div>
         <div class="menu-item" data-page="logs"><span class="menu-icon">📜</span>Activity Logs</div>
+        <div class="menu-item" data-page="calendar"><span class="menu-icon">📅</span>ปฏิทินแจ้งเตือน</div>
       </div>
     </aside>
     <main class="main">
@@ -350,6 +352,17 @@ export function renderIndex(): string {
             </table>
           </div>
           <div id="logs-empty" class="empty hidden"><div class="empty-icon">📜</div><div class="empty-title">ยังไม่มีกิจกรรม</div><div class="empty-desc">เริ่มใช้งานเพื่อบันทึกกิจกรรม</div></div>
+        </div>
+      </div>
+
+    <!-- Calendar (iframe) -->
+      <div id="page-calendar" class="page">
+        <div class="hero" style="background:linear-gradient(135deg,rgba(251,146,60,.15),rgba(251,146,60,.05))">
+          <div class="hero-title">📅 ปฏิทินแจ้งเตือน</div>
+          <div class="hero-sub">ติดตามวันหมดอายุและกำหนดการต่างๆ</div>
+        </div>
+        <div class="iframe-container">
+          <iframe id="calendar-iframe" src="" frameborder="0" allowfullscreen></iframe>
         </div>
       </div>
 
