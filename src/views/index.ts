@@ -356,25 +356,18 @@ export function renderIndex(): string {
         </div>
       </div>
 
-    <!-- Calendar (External Link) -->
+    <!-- Calendar (iframe) -->
       <div id="page-calendar" class="page">
         <div class="hero" style="background:linear-gradient(135deg,rgba(251,146,60,.15),rgba(251,146,60,.05))">
           <div class="hero-title">📅 ปฏิทินแจ้งเตือน</div>
           <div class="hero-sub">ติดตามวันหมดอายุและกำหนดการต่างๆ</div>
         </div>
-        <div class="calendar-link-card">
-          <div class="calendar-icon">📅</div>
-          <h3>Expiry Admin</h3>
-          <p>ระบบจัดการวันหมดอายุสำหรับติดตามบริการต่างๆ</p>
-          <div class="calendar-features">
-            <span class="feature-tag">⏰ แจ้งเตือนอัตโนมัติ</span>
-            <span class="feature-tag">📊 ดูสถิติ</span>
-            <span class="feature-tag">🔔 LINE Notify</span>
+        <div class="iframe-container">
+          <div id="calendar-loading" class="iframe-loading">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">กำลังโหลดปฏิทิน...</div>
           </div>
-          <a href="https://expiry-admin-git.pages.dev/" target="_blank" class="btn calendar-btn">
-            <span>เปิดปฏิทินแจ้งเตือน</span>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
-          </a>
+          <iframe id="calendar-iframe" src="" frameborder="0" allowfullscreen></iframe>
         </div>
       </div>
 
