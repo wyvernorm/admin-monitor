@@ -66,14 +66,6 @@ export function renderIndex(): string {
           <div class="stat-card"><div class="stat-icon c3">✅</div><div class="stat-val" id="stat-done" style="color:var(--purple)">0</div><div class="stat-lbl">เสร็จแล้ว</div></div>
           <div class="stat-card"><div class="stat-icon c4">📈</div><div class="stat-val" id="stat-rate" style="color:var(--pink)">0%</div><div class="stat-lbl">อัตราสำเร็จ</div></div>
         </div>
-        <div class="actions-row">
-          <div class="action-card" onclick="goTo('yt-summary')"><div class="action-icon">📺</div><div class="action-label">YouTube</div></div>
-          <div class="action-card" onclick="goTo('tt-all')"><div class="action-icon">🎵</div><div class="action-label">TikTok</div></div>
-          <div class="action-card" onclick="goTo('fb-summary')"><div class="action-icon">📘</div><div class="action-label">Facebook</div></div>
-          <div class="action-card" onclick="goTo('ig-summary')"><div class="action-icon">📷</div><div class="action-label">Instagram</div></div>
-          <div class="action-card" onclick="goTo('monitor')"><div class="action-icon">➕</div><div class="action-label">เพิ่มงาน</div></div>
-          <div class="action-card" onclick="refreshDashboard()"><div class="action-icon">🔄</div><div class="action-label">รีเฟรช</div></div>
-        </div>
         <div class="section-header"><div class="section-title"><span class="live-dot"></span>งานล่าสุด</div><button class="refresh-btn" onclick="refreshOrders()">🔄 รีเฟรช</button></div>
         <div id="dash-orders"></div>
       </div>
@@ -321,6 +313,7 @@ export function renderIndex(): string {
             <h3 style="font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px">📜 กิจกรรมล่าสุด</h3>
             <div class="logs-filters">
               <button class="filter-chip active" data-filter="all" onclick="filterLogs('all')">ทั้งหมด</button>
+              <button class="filter-chip" data-filter="monitor" onclick="filterLogs('monitor')">🧠 Monitor</button>
               <button class="filter-chip" data-filter="youtube" onclick="filterLogs('youtube')">📺 YouTube</button>
               <button class="filter-chip" data-filter="tiktok" onclick="filterLogs('tiktok')">🎵 TikTok</button>
               <button class="filter-chip" data-filter="facebook" onclick="filterLogs('facebook')">📘 Facebook</button>

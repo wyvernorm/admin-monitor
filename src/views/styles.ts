@@ -202,6 +202,8 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .log-user-email{font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .log-platform{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500;text-transform:capitalize}
 .log-action{font-size:13px;color:var(--text)}
+.log-details{font-size:11px;color:var(--dim);margin-top:4px;word-break:break-all}
+.log-tag{display:inline-block;font-size:10px;padding:2px 6px;background:var(--input);border-radius:4px;margin-right:4px;margin-top:4px;color:var(--muted)}
 .log-time{font-size:12px;color:var(--dim);white-space:nowrap}
 .log-user.clickable{cursor:pointer}
 .logs-table tr{cursor:pointer;transition:all .2s}
