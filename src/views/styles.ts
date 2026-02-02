@@ -19,7 +19,31 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .logo-icon{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 15px rgba(34,197,94,.3)}
 .logo-text{font-size:16px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .logo-ver{font-size:11px;color:var(--dim)}
-.user-box{display:flex;align-items:center;gap:12px;padding:12px;background:var(--input);border:1px solid var(--border);border-radius:14px;margin-bottom:16px}
+.user-box{display:flex;align-items:center;gap:12px;padding:12px;background:var(--input);border:1px solid var(--border);border-radius:14px;margin-bottom:8px}
+
+/* Gamification - Level & XP */
+.user-level{display:flex;align-items:center;gap:8px;margin-top:6px}
+.level-badge{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#000;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px}
+.level-badge.lv2{background:linear-gradient(135deg,#60a5fa,#3b82f6);color:#fff}
+.level-badge.lv3{background:linear-gradient(135deg,#a78bfa,#8b5cf6);color:#fff}
+.level-badge.lv4{background:linear-gradient(135deg,#f472b6,#ec4899);color:#fff}
+.level-badge.lv5{background:linear-gradient(135deg,#fb923c,#f97316);color:#fff}
+.level-badge.lv6{background:linear-gradient(135deg,#fcd34d,#fbbf24);color:#000}
+.xp-bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.xp-fill{height:100%;background:linear-gradient(90deg,var(--accent),#22c55e);border-radius:3px;transition:width .5s ease}
+
+/* User Badges */
+.user-badges{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 16px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.badge-item{font-size:18px;cursor:pointer;transition:transform .2s;position:relative}
+.badge-item:hover{transform:scale(1.3)}
+.badge-item.locked{opacity:.3;filter:grayscale(1)}
+.badge-tooltip{position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:#000;color:#fff;padding:6px 10px;border-radius:8px;font-size:11px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s;z-index:100}
+.badge-item:hover .badge-tooltip{opacity:1}
+
+/* Leaderboard Enhanced */
+.lb-level{font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;margin-left:6px;color:#fff}
+.lb-badges{display:flex;gap:2px;margin-top:4px}
+.lb-badges span{font-size:12px}
 .avatar{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--blue));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;overflow:hidden}
 .avatar img{width:100%;height:100%;object-fit:cover}
 .user-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

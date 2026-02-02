@@ -46,8 +46,20 @@ export function renderIndex(): string {
       <div class="menu-item" data-page="botorder" onclick="mobileGoTo('botorder')"><span class="menu-icon">🤖</span>บอทออเดอร์</div>
     </div>
     <aside class="sidebar">
-      <div class="logo-box"><div class="logo-icon">📊</div><div><div class="logo-text">Admin Monitor</div><div class="logo-ver">v2.6</div></div></div>
-      <div class="user-box"><div class="avatar" id="user-avatar">?</div><div style="flex:1;min-width:0"><div id="user-name" class="user-name">Loading...</div><div id="user-email" class="user-email"></div></div><button onclick="logout()" class="logout-btn">ออก</button></div>
+      <div class="logo-box"><div class="logo-icon">📊</div><div><div class="logo-text">Admin Monitor</div><div class="logo-ver">v3.0</div></div></div>
+      <div class="user-box">
+        <div class="avatar" id="user-avatar">?</div>
+        <div style="flex:1;min-width:0">
+          <div id="user-name" class="user-name">Loading...</div>
+          <div id="user-email" class="user-email"></div>
+          <div class="user-level">
+            <span id="user-level-badge" class="level-badge">Lv.1</span>
+            <div class="xp-bar"><div id="user-xp-fill" class="xp-fill" style="width:0%"></div></div>
+          </div>
+        </div>
+        <button onclick="logout()" class="logout-btn">ออก</button>
+      </div>
+      <div id="user-badges" class="user-badges"></div>
       <div class="menu-group"><div class="menu-label">หน้าหลัก</div>
         <div class="menu-item active" data-page="dashboard"><span class="menu-icon">📊</span>Dashboard</div>
         <div class="menu-item" data-page="monitor"><span class="menu-icon">🧠</span>งานตรวจสอบ<span id="monitor-badge" class="menu-badge hidden">0</span></div>

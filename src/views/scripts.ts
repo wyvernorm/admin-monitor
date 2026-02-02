@@ -2,6 +2,80 @@ export const scripts = `
 <script>
 var user=null,lastYT=null,NL=String.fromCharCode(10),usedFB=[],usedIG=[],currentLogFilter='all',ttCache={},allLogs=[];
 
+// ==================== GAMIFICATION SYSTEM ====================
+var GAME={
+  levels:[
+    {lv:1,name:'Newbie',min:0,max:50,color:'#fbbf24'},
+    {lv:2,name:'Beginner',min:51,max:150,color:'#3b82f6'},
+    {lv:3,name:'Intermediate',min:151,max:300,color:'#8b5cf6'},
+    {lv:4,name:'Advanced',min:301,max:500,color:'#ec4899'},
+    {lv:5,name:'Expert',min:501,max:1000,color:'#f97316'},
+    {lv:6,name:'Master',min:1001,max:999999,color:'#fbbf24'}
+  ],
+  badges:[
+    {id:'first',icon:'🩸',name:'First Blood',desc:'ทำงานแรก',check:function(s){return s.total>=1;}},
+    {id:'ten',icon:'🔟',name:'Perfect 10',desc:'ครบ 10 งาน',check:function(s){return s.total>=10;}},
+    {id:'fifty',icon:'5️⃣',name:'Half Century',desc:'ครบ 50 งาน',check:function(s){return s.total>=50;}},
+    {id:'century',icon:'💯',name:'Century',desc:'ครบ 100 งาน',check:function(s){return s.total>=100;}},
+    {id:'fivehundred',icon:'🔥',name:'On Fire',desc:'ครบ 500 งาน',check:function(s){return s.total>=500;}},
+    {id:'thousand',icon:'👑',name:'Legend',desc:'ครบ 1,000 งาน',check:function(s){return s.total>=1000;}},
+    {id:'ytmaster',icon:'📺',name:'YouTube Master',desc:'ทำ YouTube 50 งาน',check:function(s){return s.youtube>=50;}},
+    {id:'ttstar',icon:'🎵',name:'TikTok Star',desc:'ทำ TikTok 50 งาน',check:function(s){return s.tiktok>=50;}},
+    {id:'fbpro',icon:'📘',name:'Facebook Pro',desc:'ทำ Facebook 50 งาน',check:function(s){return s.facebook>=50;}},
+    {id:'igking',icon:'📷',name:'Instagram King',desc:'ทำ Instagram 50 งาน',check:function(s){return s.instagram>=50;}},
+    {id:'allround',icon:'🌟',name:'All-Rounder',desc:'ทำครบทุก Platform',check:function(s){return s.youtube>=10&&s.tiktok>=10&&s.facebook>=10&&s.instagram>=10;}}
+  ],
+  
+  getLevel:function(xp){
+    for(var i=this.levels.length-1;i>=0;i--){
+      if(xp>=this.levels[i].min)return this.levels[i];
+    }
+    return this.levels[0];
+  },
+  
+  getXpProgress:function(xp){
+    var lv=this.getLevel(xp);
+    var progress=((xp-lv.min)/(lv.max-lv.min))*100;
+    return Math.min(100,Math.max(0,progress));
+  },
+  
+  getBadges:function(stats){
+    var earned=[];
+    this.badges.forEach(function(b){
+      if(b.check(stats))earned.push(b);
+    });
+    return earned;
+  },
+  
+  renderUserStats:function(stats){
+    var lv=this.getLevel(stats.total);
+    var progress=this.getXpProgress(stats.total);
+    var badges=this.getBadges(stats);
+    
+    // Update level badge
+    var lvBadge=document.getElementById('user-level-badge');
+    if(lvBadge){
+      lvBadge.textContent='Lv.'+lv.lv+' '+lv.name;
+      lvBadge.className='level-badge lv'+lv.lv;
+    }
+    
+    // Update XP bar
+    var xpFill=document.getElementById('user-xp-fill');
+    if(xpFill)xpFill.style.width=progress+'%';
+    
+    // Update badges
+    var badgesCont=document.getElementById('user-badges');
+    if(badgesCont){
+      var html='';
+      this.badges.forEach(function(b){
+        var earned=badges.find(function(e){return e.id===b.id;});
+        html+='<span class="badge-item'+(earned?'':' locked')+'" title="'+b.name+'">'+b.icon+'<span class="badge-tooltip">'+b.name+(earned?'':'<br>('+b.desc+')')+'</span></span>';
+      });
+      badgesCont.innerHTML=html;
+    }
+  }
+};
+
 // ==================== API MODULE ====================
 var API={
   token:function(){return localStorage.getItem('session');},
@@ -509,7 +583,7 @@ async function loadLogs(){
     });
     document.getElementById('platform-stats').innerHTML=platHtml;
     
-    // Leaderboard
+    // Leaderboard with Gamification
     var lbHtml='';
     if(!stats.length)lbHtml='<div class="empty" style="padding:24px">🏆 ยังไม่มีข้อมูล</div>';
     else{
@@ -520,8 +594,24 @@ async function loadLogs(){
         var medals=['🥇','🥈','🥉'];
         var medal=i<3?medals[i]:(i+1);
         var emailEnc=encodeURIComponent(s.admin_email||'');
-        lbHtml+='<div class="lb-row clickable" onclick="showUserDetail(\\''+emailEnc+'\\')"><div class="lb-medal">'+medal+'</div><div class="lb-user-avatar">'+initial+'</div><div class="lb-user-info"><div class="lb-user-name">'+name+'</div><div class="lb-user-email">'+(s.admin_email||'')+'</div></div><div class="lb-user-score">'+fmt(s.total_actions||0)+'</div></div>';
+        
+        // Gamification
+        var userStats={total:s.total_actions||0,youtube:s.youtube_count||0,tiktok:s.tiktok_count||0,facebook:s.facebook_count||0,instagram:s.instagram_count||0};
+        var lv=GAME.getLevel(userStats.total);
+        var badges=GAME.getBadges(userStats);
+        var badgeIcons=badges.slice(0,4).map(function(b){return'<span title="'+b.name+'">'+b.icon+'</span>';}).join('');
+        
+        lbHtml+='<div class="lb-row clickable" onclick="showUserDetail(\\''+emailEnc+'\\')"><div class="lb-medal">'+medal+'</div><div class="lb-user-avatar">'+initial+'</div><div class="lb-user-info"><div class="lb-user-name">'+name+'<span class="lb-level" style="background:'+lv.color+'">Lv.'+lv.lv+'</span></div><div class="lb-badges">'+badgeIcons+'</div></div><div class="lb-user-score">'+fmt(s.total_actions||0)+'</div></div>';
       });
+      
+      // Update current user stats
+      if(user&&user.email){
+        var myStats=stats.find(function(s){return s.admin_email===user.email;});
+        if(myStats){
+          var userGameStats={total:myStats.total_actions||0,youtube:myStats.youtube_count||0,tiktok:myStats.tiktok_count||0,facebook:myStats.facebook_count||0,instagram:myStats.instagram_count||0};
+          GAME.renderUserStats(userGameStats);
+        }
+      }
     }
     document.getElementById('leaderboard').innerHTML=lbHtml;
     

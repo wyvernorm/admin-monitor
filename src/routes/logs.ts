@@ -27,13 +27,17 @@ logs.get('/', async (c) => {
       LIMIT 100
     `).all();
 
-    // Get stats per user
+    // Get stats per user with platform breakdown
     const statsResult = await c.env.DB.prepare(`
       SELECT 
         admin_email,
         admin_name,
         COUNT(*) as total_actions,
-        MAX(created_at) as last_active
+        MAX(created_at) as last_active,
+        SUM(CASE WHEN category = 'youtube' THEN 1 ELSE 0 END) as youtube_count,
+        SUM(CASE WHEN category = 'tiktok' THEN 1 ELSE 0 END) as tiktok_count,
+        SUM(CASE WHEN category = 'facebook' THEN 1 ELSE 0 END) as facebook_count,
+        SUM(CASE WHEN category = 'instagram' THEN 1 ELSE 0 END) as instagram_count
       FROM activity_logs
       GROUP BY admin_email
       ORDER BY total_actions DESC
