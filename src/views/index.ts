@@ -261,15 +261,27 @@ export function renderIndex(): string {
 
       <!-- Activity Logs -->
       <div id="page-logs" class="page">
-        <div class="hero" style="background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(236,72,153,.05))"><div class="hero-title">📜 Activity Logs</div><div class="hero-sub">ดูประวัติการใช้งานของทีม</div></div>
-        <div class="dash-grid">
-          <div class="dash-stat"><div class="dash-stat-icon">📊</div><div class="dash-stat-value" id="logs-val" style="color:var(--accent)">0</div><div class="dash-stat-label">กิจกรรมทั้งหมด</div></div>
-          <div class="dash-stat"><div class="dash-stat-icon">👥</div><div class="dash-stat-value" id="log-users" style="color:var(--blue)">0</div><div class="dash-stat-label">ผู้ใช้งาน</div></div>
-          <div class="dash-stat"><div class="dash-stat-icon">📅</div><div class="dash-stat-value" id="log-today" style="color:var(--purple)">0</div><div class="dash-stat-label">วันนี้</div></div>
+        <!-- Overview Section -->
+        <div id="logs-overview">
+          <div class="hero" style="background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(236,72,153,.05))"><div class="hero-title">📜 Activity Logs</div><div class="hero-sub">ดูประวัติการใช้งานของทีม - คลิกที่ผู้ใช้เพื่อดูรายละเอียด</div></div>
+          <div class="stats-row" style="grid-template-columns:repeat(4,1fr)">
+            <div class="stat-card"><div class="stat-icon c1">📊</div><div class="stat-val" id="logs-val" style="color:var(--accent)">0</div><div class="stat-lbl">กิจกรรมทั้งหมด</div></div>
+            <div class="stat-card"><div class="stat-icon c2">👥</div><div class="stat-val" id="log-users" style="color:var(--blue)">0</div><div class="stat-lbl">ผู้ใช้งาน</div></div>
+            <div class="stat-card"><div class="stat-icon c3">📅</div><div class="stat-val" id="log-today" style="color:var(--purple)">0</div><div class="stat-lbl">วันนี้</div></div>
+            <div class="stat-card"><div class="stat-icon c4">🧾</div><div class="stat-val" id="log-summary" style="color:var(--pink)">0</div><div class="stat-lbl">สรุปงาน</div></div>
+          </div>
+          <div class="card"><div class="card-header"><h3 style="font-size:16px">📊 สถิติตาม Platform</h3></div><div id="platform-chart"></div></div>
+          <div class="card">
+            <div class="card-header"><h3 style="font-size:16px">👥 ผู้ใช้งานทั้งหมด</h3><button class="btn btn-sm btn-secondary" onclick="loadLogs()">🔄 รีเฟรช</button></div>
+            <div id="user-stats"></div>
+          </div>
         </div>
-        <div class="card"><div class="card-header"><h3 style="font-size:16px">📊 สถิติตาม Platform</h3></div><div id="platform-chart"></div></div>
-        <div class="card"><div class="card-header"><h3 style="font-size:16px">🏆 Leaderboard</h3><button class="btn btn-sm btn-secondary" onclick="loadLogs()">🔄</button></div><div id="user-stats"></div></div>
-        <div class="card"><div class="card-header"><h3 style="font-size:16px">📜 กิจกรรมล่าสุด</h3><div class="filter-row"><button class="filter-btn active" data-filter="all" onclick="setLogFilter('all')">ทั้งหมด</button><button class="filter-btn" data-filter="youtube" onclick="setLogFilter('youtube')">📺</button><button class="filter-btn" data-filter="tiktok" onclick="setLogFilter('tiktok')">🎵</button><button class="filter-btn" data-filter="facebook" onclick="setLogFilter('facebook')">📘</button><button class="filter-btn" data-filter="instagram" onclick="setLogFilter('instagram')">📷</button></div></div><div id="logs-timeline"></div></div>
+
+        <!-- User Detail Section (Hidden by default) -->
+        <div id="logs-user-detail" class="hidden">
+          <div class="back-header" onclick="showLogsOverview()"><span style="cursor:pointer;display:flex;align-items:center;gap:8px">← กลับ</span></div>
+          <div id="user-detail-content"></div>
+        </div>
       </div>
 
     </main>
