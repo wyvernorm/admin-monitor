@@ -1,6 +1,45 @@
 export const scripts = `
 <script>
 var user=null,lastYT=null,NL=String.fromCharCode(10),usedFB=[],usedIG=[],currentLogFilter='all',ttCache={},allLogs=[];
+var prevRanks={},earnedBadges=[];
+
+// 🎉 Celebration Functions
+function fireConfetti(){
+  if(typeof confetti==='undefined')return;
+  confetti({particleCount:100,spread:70,origin:{y:0.6}});
+}
+function fireConfettiBig(){
+  if(typeof confetti==='undefined')return;
+  var duration=3000;
+  var end=Date.now()+duration;
+  (function frame(){
+    confetti({particleCount:3,angle:60,spread:55,origin:{x:0}});
+    confetti({particleCount:3,angle:120,spread:55,origin:{x:1}});
+    if(Date.now()<end)requestAnimationFrame(frame);
+  })();
+}
+function fireBadgeConfetti(){
+  if(typeof confetti==='undefined')return;
+  confetti({particleCount:50,spread:60,origin:{y:0.7},colors:['#FFD700','#FFA500','#FF6347']});
+}
+function showCelebration(title,message){
+  var el=document.createElement('div');
+  el.className='celebration-popup';
+  el.innerHTML='<div class="celeb-icon">🎉</div><div class="celeb-title">'+title+'</div><div class="celeb-msg">'+message+'</div>';
+  document.body.appendChild(el);
+  fireConfettiBig();
+  setTimeout(function(){el.classList.add('show');},10);
+  setTimeout(function(){el.classList.remove('show');setTimeout(function(){el.remove();},300);},4000);
+}
+function showBadgeEarned(badge){
+  var el=document.createElement('div');
+  el.className='badge-earned-popup';
+  el.innerHTML='<div class="badge-earned-icon new-badge">'+badge.icon+'</div><div class="badge-earned-info"><div class="badge-earned-title">🏅 ได้รับ Badge ใหม่!</div><div class="badge-earned-name">'+badge.name+'</div></div>';
+  document.body.appendChild(el);
+  fireBadgeConfetti();
+  setTimeout(function(){el.classList.add('show');},10);
+  setTimeout(function(){el.classList.remove('show');setTimeout(function(){el.remove();},300);},3500);
+}
 
 // Convert UTC to GMT+7 (Thailand)
 function toThaiTime(dateStr){
@@ -332,6 +371,7 @@ async function handleAddMonitor(){
     document.getElementById('m-view').value='';
     document.getElementById('m-line').value='';
     await logActivity('เพิ่มงาน Monitor','monitor',{url:url,viewTarget:Number(vt)||0,likeTarget:Number(lt)||0,lineId:line});
+    fireConfetti();
     loadOrders();loadDash();
   }catch(e){st.className='status-box error';st.textContent='❌ '+e.message;}
   finally{isSubmitting=false;if(btn)btn.disabled=false;}
@@ -665,8 +705,9 @@ async function loadLogs(){
     });
     document.getElementById('platform-stats').innerHTML=platHtml;
     
-    // Leaderboard with Gamification
+    // Leaderboard with Gamification + Rank Animation
     var lbHtml='';
+    var newRanks={};
     if(!stats.length)lbHtml='<div class="empty" style="padding:24px">🏆 ยังไม่มีข้อมูล</div>';
     else{
       stats.sort(function(a,b){return(b.total_actions||0)-(a.total_actions||0);});
@@ -676,6 +717,15 @@ async function loadLogs(){
         var medals=['🥇','🥈','🥉'];
         var medal=i<3?medals[i]:(i+1);
         var emailEnc=encodeURIComponent(s.admin_email||'');
+        var email=s.admin_email||'';
+        newRanks[email]=i+1;
+        
+        // Check rank change
+        var rankClass='';
+        if(prevRanks[email]!==undefined){
+          if(prevRanks[email]>i+1)rankClass='rank-up';
+          else if(prevRanks[email]<i+1)rankClass='rank-down';
+        }
         
         // Gamification
         var userStats={total:s.total_actions||0,youtube:s.youtube_count||0,tiktok:s.tiktok_count||0,facebook:s.facebook_count||0,instagram:s.instagram_count||0,night_count:s.night_count||0,early_count:s.early_count||0,weekend_count:s.weekend_count||0,max_streak:s.max_streak||0,max_daily:s.max_daily||0,max_hourly:s.max_hourly||0,days_active:s.days_active||0,best_rank:s.best_rank||999};
@@ -683,15 +733,25 @@ async function loadLogs(){
         var badges=GAME.getBadges(userStats);
         var badgeIcons=badges.slice(0,4).map(function(b){return'<span title="'+b.name+'">'+b.icon+'</span>';}).join('');
         
-        lbHtml+='<div class="lb-row clickable" onclick="showUserDetail(\\''+emailEnc+'\\')"><div class="lb-medal">'+medal+'</div><div class="lb-user-avatar">'+initial+'</div><div class="lb-user-info"><div class="lb-user-name">'+name+'<span class="lb-level" style="background:'+lv.color+'">Lv.'+lv.lv+'</span></div><div class="lb-badges">'+badgeIcons+'</div></div><div class="lb-user-score">'+fmt(s.total_actions||0)+'</div></div>';
+        lbHtml+='<div class="lb-row clickable '+rankClass+'" onclick="showUserDetail(\\''+emailEnc+'\\')"><div class="lb-medal">'+medal+'</div><div class="lb-user-avatar">'+initial+'</div><div class="lb-user-info"><div class="lb-user-name">'+name+'<span class="lb-level" style="background:'+lv.color+'">Lv.'+lv.lv+'</span></div><div class="lb-badges">'+badgeIcons+'</div></div><div class="lb-user-score">'+fmt(s.total_actions||0)+'</div></div>';
       });
+      prevRanks=newRanks;
       
-      // Update current user stats
+      // Update current user stats + check new badges
       if(user&&user.email){
         var myStats=stats.find(function(s){return s.admin_email===user.email;});
         if(myStats){
           var userGameStats={total:myStats.total_actions||0,youtube:myStats.youtube_count||0,tiktok:myStats.tiktok_count||0,facebook:myStats.facebook_count||0,instagram:myStats.instagram_count||0,night_count:myStats.night_count||0,early_count:myStats.early_count||0,weekend_count:myStats.weekend_count||0,max_streak:myStats.max_streak||0,max_daily:myStats.max_daily||0,max_hourly:myStats.max_hourly||0,days_active:myStats.days_active||0,best_rank:myStats.best_rank||999};
           GAME.renderUserStats(userGameStats);
+          
+          // Check for new badges
+          var currentBadges=GAME.getBadges(userGameStats);
+          currentBadges.forEach(function(b){
+            if(earnedBadges.indexOf(b.id)===-1){
+              if(earnedBadges.length>0)showBadgeEarned(b);
+              earnedBadges.push(b.id);
+            }
+          });
         }
       }
     }
