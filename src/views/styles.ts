@@ -302,7 +302,7 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .status-badge.running{background:rgba(59,130,246,.15);color:#3b82f6}
 .status-badge.pending{background:rgba(156,163,175,.15);color:#9ca3af}
 .order-line{font-size:12px;color:var(--dim);margin-right:auto}
-.order-creator{font-size:12px;color:var(--accent);background:rgba(0,217,255,.1);padding:2px 8px;border-radius:6px;margin-right:8px}
+.order-creator{font-size:11px;color:#a78bfa;background:rgba(167,139,250,.15);padding:4px 10px;border-radius:12px;margin-right:auto;font-weight:500}
 .order-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 @media(max-width:768px){.filter-bar{flex-direction:column}.search-box{min-width:100%}.filter-select{width:100%}}
 
