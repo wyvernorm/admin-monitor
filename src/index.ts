@@ -88,7 +88,7 @@ app.get('/api/logs', async (c) => {
     
     // ดึง logs ล่าสุด 500 รายการ
     const logsResult = await db.prepare(`
-      SELECT * FROM logs 
+      SELECT * FROM activity_logs 
       ORDER BY created_at DESC
       LIMIT 500
     `).all();
@@ -103,7 +103,7 @@ app.get('/api/logs', async (c) => {
         SUM(CASE WHEN category = 'tiktok' THEN 1 ELSE 0 END) as tiktok_count,
         SUM(CASE WHEN category = 'facebook' THEN 1 ELSE 0 END) as facebook_count,
         SUM(CASE WHEN category = 'instagram' THEN 1 ELSE 0 END) as instagram_count
-      FROM logs 
+      FROM activity_logs 
       GROUP BY admin_email
       ORDER BY total_actions DESC
     `).all();
@@ -125,7 +125,7 @@ app.get('/api/logs/user/:email', async (c) => {
     
     // ดึง logs ทั้งหมดของ user นี้
     const logsResult = await db.prepare(`
-      SELECT * FROM logs 
+      SELECT * FROM activity_logs 
       WHERE admin_email = ?
       ORDER BY created_at DESC
       LIMIT 1000
@@ -142,7 +142,7 @@ app.get('/api/logs/user/:email', async (c) => {
         SUM(CASE WHEN category = 'facebook' THEN 1 ELSE 0 END) as facebook_count,
         SUM(CASE WHEN category = 'instagram' THEN 1 ELSE 0 END) as instagram_count,
         SUM(CASE WHEN category = 'monitor' THEN 1 ELSE 0 END) as monitor_count
-      FROM logs 
+      FROM activity_logs 
       WHERE admin_email = ?
     `).bind(email).all();
     
@@ -155,7 +155,7 @@ app.get('/api/logs/user/:email', async (c) => {
         SUM(CASE WHEN category = 'tiktok' THEN 1 ELSE 0 END) as tiktok,
         SUM(CASE WHEN category = 'facebook' THEN 1 ELSE 0 END) as facebook,
         SUM(CASE WHEN category = 'instagram' THEN 1 ELSE 0 END) as instagram
-      FROM logs 
+      FROM activity_logs 
       WHERE admin_email = ?
       GROUP BY DATE(created_at)
       ORDER BY date DESC
@@ -167,7 +167,7 @@ app.get('/api/logs/user/:email', async (c) => {
       SELECT 
         CAST(strftime('%H', created_at) AS INTEGER) as hour,
         COUNT(*) as count
-      FROM logs 
+      FROM activity_logs 
       WHERE admin_email = ?
       GROUP BY hour
       ORDER BY hour
@@ -257,8 +257,8 @@ app.get('/api/team', async (c) => {
     // ดึงรายชื่อทีม
     const members = await db.prepare(`
       SELECT tm.*, 
-        (SELECT COUNT(*) FROM logs WHERE admin_email = tm.email) as total_actions,
-        (SELECT MAX(created_at) FROM logs WHERE admin_email = tm.email) as last_action
+        (SELECT COUNT(*) FROM activity_logs WHERE admin_email = tm.email) as total_actions,
+        (SELECT MAX(created_at) FROM activity_logs WHERE admin_email = tm.email) as last_action
       FROM team_members tm
       ORDER BY tm.role DESC, tm.created_at
     `).all();
@@ -362,7 +362,7 @@ app.get('/api/analytics', async (c) => {
         SUM(CASE WHEN category = 'tiktok' THEN 1 ELSE 0 END) as tiktok,
         SUM(CASE WHEN category = 'facebook' THEN 1 ELSE 0 END) as facebook,
         SUM(CASE WHEN category = 'instagram' THEN 1 ELSE 0 END) as instagram
-      FROM logs
+      FROM activity_logs
       WHERE created_at >= datetime('now', '-30 days')
       GROUP BY DATE(created_at)
       ORDER BY date DESC
@@ -377,7 +377,7 @@ app.get('/api/analytics', async (c) => {
         SUM(CASE WHEN category = 'tiktok' THEN 1 ELSE 0 END) as tiktok,
         SUM(CASE WHEN category = 'facebook' THEN 1 ELSE 0 END) as facebook,
         SUM(CASE WHEN category = 'instagram' THEN 1 ELSE 0 END) as instagram
-      FROM logs
+      FROM activity_logs
       WHERE created_at >= datetime('now', '-12 weeks')
       GROUP BY week
       ORDER BY week DESC
@@ -386,7 +386,7 @@ app.get('/api/analytics', async (c) => {
     // Top actions
     const topActions = await db.prepare(`
       SELECT action, category, COUNT(*) as count
-      FROM logs
+      FROM activity_logs
       WHERE created_at >= datetime('now', '-30 days')
       GROUP BY action, category
       ORDER BY count DESC
@@ -399,17 +399,17 @@ app.get('/api/analytics', async (c) => {
         COUNT(*) as total_actions,
         COUNT(DISTINCT admin_email) as total_users,
         COUNT(DISTINCT DATE(created_at)) as active_days
-      FROM logs
+      FROM activity_logs
     `).first();
     
     // สรุปสัปดาห์นี้ vs สัปดาห์ที่แล้ว
     const thisWeek = await db.prepare(`
-      SELECT COUNT(*) as count FROM logs 
+      SELECT COUNT(*) as count FROM activity_logs 
       WHERE created_at >= datetime('now', '-7 days')
     `).first();
     
     const lastWeek = await db.prepare(`
-      SELECT COUNT(*) as count FROM logs 
+      SELECT COUNT(*) as count FROM activity_logs 
       WHERE created_at >= datetime('now', '-14 days') 
       AND created_at < datetime('now', '-7 days')
     `).first();
