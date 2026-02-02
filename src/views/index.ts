@@ -362,7 +362,12 @@ export function renderIndex(): string {
           <div class="hero-sub">ติดตามวันหมดอายุและกำหนดการต่างๆ</div>
         </div>
         <div class="iframe-container">
-          <iframe id="calendar-iframe" src="" frameborder="0" allowfullscreen></iframe>
+          <div id="calendar-loading" class="iframe-loading">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">กำลังโหลดปฏิทิน...</div>
+            <a href="https://expiry-admin-git.pages.dev/" target="_blank" class="loading-link">หรือคลิกที่นี่เพื่อเปิดในแท็บใหม่</a>
+          </div>
+          <iframe id="calendar-iframe" src="" frameborder="0" allowfullscreen onload="onCalendarLoad()" onerror="onCalendarError()"></iframe>
         </div>
       </div>
 

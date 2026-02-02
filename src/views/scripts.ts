@@ -11,7 +11,9 @@ function logout(){localStorage.removeItem('session');location.href='/';}
 function toggleMobileNav(){var nav=document.getElementById('mobile-nav');var btn=document.querySelector('.hamburger');nav.classList.toggle('active');btn.classList.toggle('active');}
 function mobileGoTo(pg){goTo(pg);document.getElementById('mobile-nav').classList.remove('active');document.querySelector('.hamburger').classList.remove('active');document.querySelectorAll('.mobile-nav .menu-item').forEach(function(m){m.classList.remove('active');});var mi=document.querySelector('.mobile-nav .menu-item[data-page="'+pg+'"]');if(mi)mi.classList.add('active');if(pg==='logs')loadLogs();if(pg==='dashboard'){loadDash();loadOrders();}if(pg==='monitor')loadOrders();if(pg==='calendar')loadCalendar();}
 
-function loadCalendar(){var iframe=document.getElementById('calendar-iframe');if(iframe&&!iframe.src){iframe.src='https://expiry-admin-git.pages.dev/';}}
+function loadCalendar(){var iframe=document.getElementById('calendar-iframe');var loading=document.getElementById('calendar-loading');if(iframe&&!iframe.src){iframe.src='https://expiry-admin-git.pages.dev/';}}
+function onCalendarLoad(){var loading=document.getElementById('calendar-loading');if(loading)loading.classList.add('hidden');}
+function onCalendarError(){var loading=document.getElementById('calendar-loading');if(loading)loading.innerHTML='<div style="text-align:center"><div style="font-size:48px;margin-bottom:16px">⚠️</div><div style="color:var(--muted);margin-bottom:12px">ไม่สามารถโหลดในกรอบได้</div><a href="https://expiry-admin-git.pages.dev/" target="_blank" class="btn">เปิดในแท็บใหม่</a></div>';}
 
 // เพิ่ม event listener สำหรับ sidebar menu
 document.querySelectorAll('.sidebar .menu-item').forEach(function(m){m.addEventListener('click',function(){var pg=this.getAttribute('data-page');if(pg==='calendar')loadCalendar();});});
@@ -22,6 +24,23 @@ async function api(endpoint,data){var token=localStorage.getItem('session');var 
 function fmt(n){return n?n.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g,','):'0';}
 function copy(id){var t=document.getElementById(id);if(t){navigator.clipboard.writeText(t.value);toast('คัดลอกแล้ว!');}}
 function toast(msg,type){var t=document.createElement('div');t.className='toast'+(type==='error'?' error':'');t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.remove();},3000);}
+
+// Loading with progress animation
+var loadingMsgs=['🔍 กำลังเชื่อมต่อ...','📡 กำลังดึงข้อมูล...','⏳ รอสักครู่...','🔄 กำลังประมวลผล...','✨ เกือบเสร็จแล้ว...'];
+var loadingInterval=null;
+function showLoading(el,prefix){
+  if(!el)return;
+  var idx=0;
+  el.innerHTML='<div class="loading-progress"><div class="loading-dots"><span></span><span></span><span></span><span></span></div><div class="loading-msg">'+(prefix||loadingMsgs[0])+'</div></div>';
+  el.classList.remove('hidden');
+  clearInterval(loadingInterval);
+  loadingInterval=setInterval(function(){
+    idx=(idx+1)%loadingMsgs.length;
+    var msg=el.querySelector('.loading-msg');
+    if(msg)msg.textContent=loadingMsgs[idx];
+  },2000);
+}
+function hideLoading(){clearInterval(loadingInterval);}
 
 document.querySelectorAll('.menu-item').forEach(function(m){m.addEventListener('click',function(){document.querySelectorAll('.menu-item').forEach(function(i){i.classList.remove('active');});document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});m.classList.add('active');var p=document.getElementById('page-'+m.dataset.page);if(p)p.classList.add('active');if(m.dataset.page==='logs')loadLogs();if(m.dataset.page==='dashboard'){loadDash();loadOrders();}if(m.dataset.page==='monitor')loadOrders();});});
 function goTo(pg){document.querySelectorAll('.menu-item').forEach(function(i){i.classList.remove('active');});document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});var m=document.querySelector('[data-page="'+pg+'"]');if(m)m.classList.add('active');var p=document.getElementById('page-'+pg);if(p)p.classList.add('active');}
@@ -70,7 +89,7 @@ async function handleGetFBStats(){
   var url=document.getElementById('fb-s-url').value;
   var r=document.getElementById('fb-s-result');
   var card=document.getElementById('fb-s-card');
-  r.className='status-box';r.textContent='⏳ กำลังดึงข้อมูล...';r.classList.remove('hidden');
+  showLoading(r,'🔍 กำลังเชื่อมต่อ Facebook...');
   card.classList.add('hidden');
   lastFBStats=null;
   
@@ -82,6 +101,7 @@ async function handleGetFBStats(){
     if(isVideo){
       // ใช้ video-stats API
       d=await api('facebook/video-stats',{url:url});
+      hideLoading();
       if(d.error)throw new Error(d.error);
       
       // แสดงผลแบบ Card
@@ -102,6 +122,7 @@ async function handleGetFBStats(){
     }else{
       // ใช้ stats API ปกติ
       d=await api('facebook/stats',{url:url});
+      hideLoading();
       if(d.error)throw new Error(d.error);
       r.className='status-box success';
       if(d.type==='page'){
@@ -115,7 +136,7 @@ async function handleGetFBStats(){
       logActivity('ดูสถิติ Facebook','facebook',{url:url});
     }
     toast('ดึงข้อมูลสำเร็จ!');
-  }catch(e){r.className='status-box error';r.textContent='❌ '+e.message;}
+  }catch(e){hideLoading();r.className='status-box error';r.textContent='❌ '+e.message;}
 }
 async function handleGenFB(){var url=document.getElementById('fb-url').value;var type=document.getElementById('fb-type').value;var amt=Number(document.getElementById('fb-amt').value)||0;var stIn=document.getElementById('fb-start');var card=document.getElementById('fb-card');var cont=document.getElementById('fb-content');var txt=document.getElementById('fb-text');if(!url||!amt){toast('กรุณากรอกข้อมูล','error');return;}card.classList.remove('hidden');cont.textContent='⏳ กำลังดึงข้อมูล...';
 try{
@@ -150,7 +171,39 @@ try{
   toast('สร้างสรุปแล้ว');
 }catch(e){cont.textContent='❌ '+e.message;}}
 function addFBItem(){var c=document.getElementById('fbb-items');var idx=c.querySelectorAll('.fb-row').length+1;var div=document.createElement('div');div.className='form-row mt-2 fb-row';div.innerHTML='<div style="flex:2"><label class="form-label">#'+idx+'</label><select class="fb-type"><option value="like-mix">👍 ไลค์</option><option value="like-th1">👍 #TH1</option><option value="like-th2">👍 #TH2</option><option value="share">🔗 แชร์</option><option value="view">👁️ วิว</option></select></div><div style="flex:1"><label class="form-label">จำนวน</label><input type="number" class="fb-amt" placeholder="1000"/></div><div style="flex:1"><label class="form-label">เริ่ม</label><input type="number" class="fb-st" placeholder="auto"/></div><div style="width:40px;padding-top:20px"><button class="del-btn" onclick="this.closest(\\'.fb-row\\').remove()">🗑️</button></div>';c.appendChild(div);}
-async function handleGenFBBatch(){var url=document.getElementById('fbb-url').value;var card=document.getElementById('fbb-card');var cont=document.getElementById('fbb-content');var txt=document.getElementById('fbb-text');var rows=document.querySelectorAll('.fb-row');if(!url||!rows.length){toast('กรุณากรอกข้อมูล','error');return;}card.classList.remove('hidden');cont.textContent='⏳ กำลังดึงข้อมูล...';try{var d=await api('facebook/stats',{url:url});var stats=d.stats||{};var lines=['ลิงก์ : '+url];rows.forEach(function(r){var type=r.querySelector('.fb-type').value;var amt=Number(r.querySelector('.fb-amt').value)||0;var st=Number(r.querySelector('.fb-st').value)||0;var label='',tl='';if(type.indexOf('like')===0){st=st||stats.reactions||0;label='ไลค์';tl=type==='like-th1'?' #TH1':type==='like-th2'?' #TH2':'';}else if(type==='share'){st=st||stats.shares||0;label='แชร์';}else{st=st||stats.views||0;label='วิว';}lines.push('เริ่ม '+fmt(st)+' + '+fmt(amt)+' = '+fmt(st+amt)+'++ '+label+tl);});cont.textContent=lines.join(NL);txt.value=lines.join(NL);logActivity('FB Batch','facebook',{itemCount:rows.length});toast('สร้างสรุปแล้ว');}catch(e){cont.textContent='❌ '+e.message;}}
+async function handleGenFBBatch(){var url=document.getElementById('fbb-url').value;var card=document.getElementById('fbb-card');var cont=document.getElementById('fbb-content');var txt=document.getElementById('fbb-text');var rows=document.querySelectorAll('.fb-row');if(!url||!rows.length){toast('กรุณากรอกข้อมูล','error');return;}card.classList.remove('hidden');showLoading(cont,'🔍 กำลังดึงข้อมูล...');
+try{
+  var isVideo=url.includes('/reel/')||url.includes('/videos/')||url.includes('/watch')||url.includes('fb.watch');
+  var stats={};
+  var hasViewType=false;
+  rows.forEach(function(r){if(r.querySelector('.fb-type').value==='view')hasViewType=true;});
+  
+  // ถ้าเป็น Video/Reel และมีการเลือก view ให้ใช้ video-stats API
+  if(isVideo&&hasViewType){
+    var vd=await api('facebook/video-stats',{url:url});
+    stats={views:vd.views||0,reactions:vd.likes||0,shares:vd.shares||0,comments:vd.comments||0};
+  }else{
+    var d=await api('facebook/stats',{url:url});
+    stats=d.stats||{};
+  }
+  hideLoading();
+  
+  var lines=['ลิงก์ : '+url];
+  rows.forEach(function(r){
+    var type=r.querySelector('.fb-type').value;
+    var amt=Number(r.querySelector('.fb-amt').value)||0;
+    var st=Number(r.querySelector('.fb-st').value)||0;
+    var label='',tl='';
+    if(type.indexOf('like')===0){st=st||stats.reactions||0;label='ไลค์';tl=type==='like-th1'?' #TH1':type==='like-th2'?' #TH2':'';}
+    else if(type==='share'){st=st||stats.shares||0;label='แชร์';}
+    else{st=st||stats.views||0;label='วิว';}
+    lines.push('เริ่ม '+fmt(st)+' + '+fmt(amt)+' = '+fmt(st+amt)+'++ '+label+tl);
+  });
+  cont.textContent=lines.join(NL);
+  txt.value=lines.join(NL);
+  logActivity('FB Batch','facebook',{itemCount:rows.length});
+  toast('สร้างสรุปแล้ว');
+}catch(e){hideLoading();cont.textContent='❌ '+e.message;}}
 
 async function handleGetIGStats(){var url=document.getElementById('ig-s-url').value;var r=document.getElementById('ig-s-result');r.className='status-box';r.textContent='⏳ กำลังดึงข้อมูล...';r.classList.remove('hidden');try{var d=await api('instagram/stats',{url:url});if(d.error)throw new Error(d.error);r.className='status-box success';if(d.type==='profile')r.textContent='📷 @'+d.username+NL+'👥 Followers: '+fmt(d.followers)+NL+'📸 Posts: '+fmt(d.posts);else{var s=d.stats||{};r.textContent='👍 Likes: '+fmt(s.likes||0)+NL+'💬 Comments: '+fmt(s.comments||0)+(s.views>0?NL+'👀 Views: '+fmt(s.views):'');}logActivity('ดูสถิติ Instagram','instagram',{url:url});}catch(e){r.className='status-box error';r.textContent='❌ '+e.message;}}
 async function handleGenIG(){var url=document.getElementById('ig-url').value;var type=document.getElementById('ig-type').value;var amt=Number(document.getElementById('ig-amt').value)||0;var card=document.getElementById('ig-card');var cont=document.getElementById('ig-content');var txt=document.getElementById('ig-text');if(!url||!amt){toast('กรุณากรอกข้อมูล','error');return;}card.classList.remove('hidden');cont.textContent='⏳ กำลังดึงข้อมูล...';try{var d=await api('instagram/stats',{url:url});var st=0,label=type,s=d.stats||{};if(type==='like'){st=s.likes||0;label='ไลค์';}else if(type==='follower'){st=d.followers||0;label='ผู้ติดตาม';}else{st=s.views||0;label='วิว';}cont.textContent='ลิงก์ : '+url+NL+'เริ่ม '+fmt(st)+' '+label+NL+'จำนวน '+fmt(amt)+' '+label+NL+'สิ้นสุด '+fmt(st+amt)+'++ '+label;txt.value=cont.textContent;logActivity('สรุปงาน Instagram','instagram',{type:type});toast('สร้างสรุปแล้ว');}catch(e){cont.textContent='❌ '+e.message;}}
