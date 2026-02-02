@@ -11,9 +11,20 @@ function logout(){localStorage.removeItem('session');location.href='/';}
 function toggleMobileNav(){var nav=document.getElementById('mobile-nav');var btn=document.querySelector('.hamburger');nav.classList.toggle('active');btn.classList.toggle('active');}
 function mobileGoTo(pg){goTo(pg);document.getElementById('mobile-nav').classList.remove('active');document.querySelector('.hamburger').classList.remove('active');document.querySelectorAll('.mobile-nav .menu-item').forEach(function(m){m.classList.remove('active');});var mi=document.querySelector('.mobile-nav .menu-item[data-page="'+pg+'"]');if(mi)mi.classList.add('active');if(pg==='logs')loadLogs();if(pg==='dashboard'){loadDash();loadOrders();}if(pg==='monitor')loadOrders();if(pg==='calendar')loadCalendar();}
 
-function loadCalendar(){var iframe=document.getElementById('calendar-iframe');var loading=document.getElementById('calendar-loading');if(iframe&&!iframe.src){iframe.src='https://expiry-admin-git.pages.dev/';}}
-window.onCalendarLoad=function(){var loading=document.getElementById('calendar-loading');if(loading)loading.classList.add('hidden');};
-window.onCalendarError=function(){var loading=document.getElementById('calendar-loading');if(loading)loading.innerHTML='<div style="text-align:center"><div style="font-size:48px;margin-bottom:16px">⚠️</div><div style="color:var(--muted);margin-bottom:12px">ไม่สามารถโหลดในกรอบได้</div><a href="https://expiry-admin-git.pages.dev/" target="_blank" class="btn">เปิดในแท็บใหม่</a></div>';};
+function loadCalendar(){
+  var iframe=document.getElementById('calendar-iframe');
+  var loading=document.getElementById('calendar-loading');
+  if(iframe&&!iframe.src){
+    iframe.src='https://expiry-admin-git.pages.dev/';
+    iframe.onload=function(){if(loading)loading.classList.add('hidden');};
+    // Timeout fallback - ถ้า 10 วินาทียังไม่โหลด แสดงลิงก์
+    setTimeout(function(){
+      if(loading&&!loading.classList.contains('hidden')){
+        loading.innerHTML='<div style="text-align:center"><div style="font-size:48px;margin-bottom:16px">📅</div><div style="color:var(--muted);margin-bottom:12px">คลิกเพื่อเปิดปฏิทิน</div><a href="https://expiry-admin-git.pages.dev/" target="_blank" class="btn" style="display:inline-block;padding:12px 24px;background:var(--accent);color:#000;border-radius:8px;text-decoration:none;font-weight:600">เปิดปฏิทินแจ้งเตือน</a></div>';
+      }
+    },10000);
+  }
+}
 
 // เพิ่ม event listener สำหรับ sidebar menu
 document.querySelectorAll('.sidebar .menu-item').forEach(function(m){m.addEventListener('click',function(){var pg=this.getAttribute('data-page');if(pg==='calendar')loadCalendar();});});
