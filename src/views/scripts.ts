@@ -5,25 +5,60 @@ var user=null,lastYT=null,NL=String.fromCharCode(10),usedFB=[],usedIG=[],current
 // ==================== GAMIFICATION SYSTEM ====================
 var GAME={
   levels:[
-    {lv:1,name:'Newbie',min:0,max:50,color:'#fbbf24'},
-    {lv:2,name:'Beginner',min:51,max:150,color:'#3b82f6'},
-    {lv:3,name:'Intermediate',min:151,max:300,color:'#8b5cf6'},
-    {lv:4,name:'Advanced',min:301,max:500,color:'#ec4899'},
-    {lv:5,name:'Expert',min:501,max:1000,color:'#f97316'},
-    {lv:6,name:'Master',min:1001,max:999999,color:'#fbbf24'}
+    {lv:1,name:'มือใหม่',min:0,max:50,color:'#fbbf24'},
+    {lv:2,name:'เริ่มต้น',min:51,max:150,color:'#3b82f6'},
+    {lv:3,name:'ปานกลาง',min:151,max:300,color:'#8b5cf6'},
+    {lv:4,name:'ชำนาญ',min:301,max:500,color:'#ec4899'},
+    {lv:5,name:'เชี่ยวชาญ',min:501,max:1000,color:'#f97316'},
+    {lv:6,name:'ปรมาจารย์',min:1001,max:999999,color:'#fbbf24'}
   ],
   badges:[
-    {id:'first',icon:'🩸',name:'First Blood',desc:'ทำงานแรก',check:function(s){return s.total>=1;}},
-    {id:'ten',icon:'🔟',name:'Perfect 10',desc:'ครบ 10 งาน',check:function(s){return s.total>=10;}},
-    {id:'fifty',icon:'5️⃣',name:'Half Century',desc:'ครบ 50 งาน',check:function(s){return s.total>=50;}},
-    {id:'century',icon:'💯',name:'Century',desc:'ครบ 100 งาน',check:function(s){return s.total>=100;}},
-    {id:'fivehundred',icon:'🔥',name:'On Fire',desc:'ครบ 500 งาน',check:function(s){return s.total>=500;}},
-    {id:'thousand',icon:'👑',name:'Legend',desc:'ครบ 1,000 งาน',check:function(s){return s.total>=1000;}},
-    {id:'ytmaster',icon:'📺',name:'YouTube Master',desc:'ทำ YouTube 50 งาน',check:function(s){return s.youtube>=50;}},
-    {id:'ttstar',icon:'🎵',name:'TikTok Star',desc:'ทำ TikTok 50 งาน',check:function(s){return s.tiktok>=50;}},
-    {id:'fbpro',icon:'📘',name:'Facebook Pro',desc:'ทำ Facebook 50 งาน',check:function(s){return s.facebook>=50;}},
-    {id:'igking',icon:'📷',name:'Instagram King',desc:'ทำ Instagram 50 งาน',check:function(s){return s.instagram>=50;}},
-    {id:'allround',icon:'🌟',name:'All-Rounder',desc:'ทำครบทุก Platform',check:function(s){return s.youtube>=10&&s.tiktok>=10&&s.facebook>=10&&s.instagram>=10;}}
+    // Milestone Badges
+    {id:'first',icon:'🩸',name:'งานแรก',desc:'ทำงานครั้งแรก',cat:'milestone',check:function(s){return s.total>=1;}},
+    {id:'ten',icon:'🔟',name:'ครบสิบ',desc:'ครบ 10 งาน',cat:'milestone',check:function(s){return s.total>=10;}},
+    {id:'fifty',icon:'5️⃣',name:'ครึ่งร้อย',desc:'ครบ 50 งาน',cat:'milestone',check:function(s){return s.total>=50;}},
+    {id:'century',icon:'💯',name:'ร้อยงาน',desc:'ครบ 100 งาน',cat:'milestone',check:function(s){return s.total>=100;}},
+    {id:'fivehundred',icon:'🔥',name:'ไฟลุก',desc:'ครบ 500 งาน',cat:'milestone',check:function(s){return s.total>=500;}},
+    {id:'thousand',icon:'👑',name:'ตำนาน',desc:'ครบ 1,000 งาน',cat:'milestone',check:function(s){return s.total>=1000;}},
+    {id:'fivek',icon:'💎',name:'เพชร',desc:'ครบ 5,000 งาน',cat:'milestone',check:function(s){return s.total>=5000;}},
+    {id:'tenk',icon:'🏆',name:'แชมป์',desc:'ครบ 10,000 งาน',cat:'milestone',check:function(s){return s.total>=10000;}},
+    
+    // Platform Master Badges (50)
+    {id:'ytmaster',icon:'📺',name:'เทพ YouTube',desc:'YouTube 50 งาน',cat:'platform',check:function(s){return s.youtube>=50;}},
+    {id:'ttstar',icon:'🎵',name:'ดาว TikTok',desc:'TikTok 50 งาน',cat:'platform',check:function(s){return s.tiktok>=50;}},
+    {id:'fbpro',icon:'📘',name:'โปร Facebook',desc:'Facebook 50 งาน',cat:'platform',check:function(s){return s.facebook>=50;}},
+    {id:'igking',icon:'📷',name:'ราชา Instagram',desc:'Instagram 50 งาน',cat:'platform',check:function(s){return s.instagram>=50;}},
+    
+    // Platform Legend Badges (100)
+    {id:'ytlegend',icon:'🔴',name:'ตำนาน YouTube',desc:'YouTube 100 งาน',cat:'platform',check:function(s){return s.youtube>=100;}},
+    {id:'ttlegend',icon:'⚫',name:'ตำนาน TikTok',desc:'TikTok 100 งาน',cat:'platform',check:function(s){return s.tiktok>=100;}},
+    {id:'fblegend',icon:'🔵',name:'ตำนาน Facebook',desc:'Facebook 100 งาน',cat:'platform',check:function(s){return s.facebook>=100;}},
+    {id:'iglegend',icon:'🟣',name:'ตำนาน Instagram',desc:'Instagram 100 งาน',cat:'platform',check:function(s){return s.instagram>=100;}},
+    
+    // All-Rounder Badges
+    {id:'allround',icon:'🌟',name:'ครบเครื่อง',desc:'ทุก Platform 10+ งาน',cat:'special',check:function(s){return s.youtube>=10&&s.tiktok>=10&&s.facebook>=10&&s.instagram>=10;}},
+    {id:'rainbow',icon:'🌈',name:'สายรุ้ง',desc:'ทุก Platform 25+ งาน',cat:'special',check:function(s){return s.youtube>=25&&s.tiktok>=25&&s.facebook>=25&&s.instagram>=25;}},
+    {id:'ultimate',icon:'✨',name:'สุดยอด',desc:'ทุก Platform 50+ งาน',cat:'special',check:function(s){return s.youtube>=50&&s.tiktok>=50&&s.facebook>=50&&s.instagram>=50;}},
+    
+    // Time-based Badges
+    {id:'nightowl',icon:'🦉',name:'นกฮูก',desc:'ทำงานหลังเที่ยงคืน 5 ครั้ง',cat:'time',check:function(s){return s.night_count>=5;}},
+    {id:'earlybird',icon:'🐦',name:'นกน้อย',desc:'ทำงานก่อน 7 โมง 5 ครั้ง',cat:'time',check:function(s){return s.early_count>=5;}},
+    {id:'weekend',icon:'☀️',name:'นักสู้วันหยุด',desc:'ทำงานวันหยุด 10 ครั้ง',cat:'time',check:function(s){return s.weekend_count>=10;}},
+    
+    // Streak Badges
+    {id:'streak3',icon:'🔥',name:'ร้อนแรง',desc:'ทำงาน 3 วันติด',cat:'streak',check:function(s){return s.max_streak>=3;}},
+    {id:'streak7',icon:'⚡',name:'สายฟ้า',desc:'ทำงาน 7 วันติด',cat:'streak',check:function(s){return s.max_streak>=7;}},
+    {id:'streak30',icon:'💫',name:'หยุดไม่ได้',desc:'ทำงาน 30 วันติด',cat:'streak',check:function(s){return s.max_streak>=30;}},
+    
+    // Speed Badges
+    {id:'speed10',icon:'🚀',name:'สปีด',desc:'10 งานใน 1 ชั่วโมง',cat:'speed',check:function(s){return s.max_hourly>=10;}},
+    {id:'speed50',icon:'⚡',name:'แฟลช',desc:'50 งานใน 1 วัน',cat:'speed',check:function(s){return s.max_daily>=50;}},
+    {id:'speed100',icon:'🌪️',name:'Tornado',desc:'100 งานใน 1 วัน',cat:'speed',check:function(s){return s.max_daily>=100;}},
+    
+    // Special Badges
+    {id:'veteran',icon:'🎂',name:'Veteran',desc:'ใช้งานมา 30 วัน',cat:'special',check:function(s){return s.days_active>=30;}},
+    {id:'elite',icon:'🎖️',name:'Elite',desc:'เคยติด Top 3',cat:'special',check:function(s){return s.best_rank<=3;}},
+    {id:'dedicated',icon:'💪',name:'Dedicated',desc:'ทำงาน 100 วัน',cat:'special',check:function(s){return s.days_active>=100;}}
   ],
   
   getLevel:function(xp){
@@ -47,6 +82,14 @@ var GAME={
     return earned;
   },
   
+  getBadgesByCategory:function(){
+    var cats={milestone:[],platform:[],special:[],time:[],streak:[],speed:[]};
+    this.badges.forEach(function(b){
+      if(cats[b.cat])cats[b.cat].push(b);
+    });
+    return cats;
+  },
+  
   renderUserStats:function(stats){
     var lv=this.getLevel(stats.total);
     var progress=this.getXpProgress(stats.total);
@@ -63,14 +106,14 @@ var GAME={
     var xpFill=document.getElementById('user-xp-fill');
     if(xpFill)xpFill.style.width=progress+'%';
     
-    // Update badges
+    // Update badges (show earned only, max 8)
     var badgesCont=document.getElementById('user-badges');
     if(badgesCont){
       var html='';
-      this.badges.forEach(function(b){
-        var earned=badges.find(function(e){return e.id===b.id;});
-        html+='<span class="badge-item'+(earned?'':' locked')+'" title="'+b.name+'">'+b.icon+'<span class="badge-tooltip">'+b.name+(earned?'':'<br>('+b.desc+')')+'</span></span>';
+      badges.slice(0,8).forEach(function(b){
+        html+='<span class="badge-item" title="'+b.name+'">'+b.icon+'<span class="badge-tooltip">'+b.name+'</span></span>';
       });
+      if(badges.length>8)html+='<span class="badge-item" title="+'+(badges.length-8)+' more">+' +(badges.length-8)+'</span>';
       badgesCont.innerHTML=html;
     }
   }
@@ -596,7 +639,7 @@ async function loadLogs(){
         var emailEnc=encodeURIComponent(s.admin_email||'');
         
         // Gamification
-        var userStats={total:s.total_actions||0,youtube:s.youtube_count||0,tiktok:s.tiktok_count||0,facebook:s.facebook_count||0,instagram:s.instagram_count||0};
+        var userStats={total:s.total_actions||0,youtube:s.youtube_count||0,tiktok:s.tiktok_count||0,facebook:s.facebook_count||0,instagram:s.instagram_count||0,night_count:s.night_count||0,early_count:s.early_count||0,weekend_count:s.weekend_count||0,max_streak:s.max_streak||0,max_daily:s.max_daily||0,max_hourly:s.max_hourly||0,days_active:s.days_active||0,best_rank:s.best_rank||999};
         var lv=GAME.getLevel(userStats.total);
         var badges=GAME.getBadges(userStats);
         var badgeIcons=badges.slice(0,4).map(function(b){return'<span title="'+b.name+'">'+b.icon+'</span>';}).join('');
@@ -608,7 +651,7 @@ async function loadLogs(){
       if(user&&user.email){
         var myStats=stats.find(function(s){return s.admin_email===user.email;});
         if(myStats){
-          var userGameStats={total:myStats.total_actions||0,youtube:myStats.youtube_count||0,tiktok:myStats.tiktok_count||0,facebook:myStats.facebook_count||0,instagram:myStats.instagram_count||0};
+          var userGameStats={total:myStats.total_actions||0,youtube:myStats.youtube_count||0,tiktok:myStats.tiktok_count||0,facebook:myStats.facebook_count||0,instagram:myStats.instagram_count||0,night_count:myStats.night_count||0,early_count:myStats.early_count||0,weekend_count:myStats.weekend_count||0,max_streak:myStats.max_streak||0,max_daily:myStats.max_daily||0,max_hourly:myStats.max_hourly||0,days_active:myStats.days_active||0,best_rank:myStats.best_rank||999};
           GAME.renderUserStats(userGameStats);
         }
       }
@@ -732,7 +775,7 @@ async function refreshGameUsers(){
     var badgeCounts={};
     GAME.badges.forEach(function(b){badgeCounts[b.id]=0;});
     stats.forEach(function(s){
-      var userStats={total:s.total_actions||0,youtube:s.youtube_count||0,tiktok:s.tiktok_count||0,facebook:s.facebook_count||0,instagram:s.instagram_count||0};
+      var userStats={total:s.total_actions||0,youtube:s.youtube_count||0,tiktok:s.tiktok_count||0,facebook:s.facebook_count||0,instagram:s.instagram_count||0,night_count:s.night_count||0,early_count:s.early_count||0,weekend_count:s.weekend_count||0,max_streak:s.max_streak||0,max_daily:s.max_daily||0,max_hourly:s.max_hourly||0,days_active:s.days_active||0,best_rank:s.best_rank||999};
       GAME.badges.forEach(function(b){
         if(b.check(userStats))badgeCounts[b.id]++;
       });
@@ -765,24 +808,31 @@ function loadUserGameStats(){
     return;
   }
   
-  var userStats={total:userData.total_actions||0,youtube:userData.youtube_count||0,tiktok:userData.tiktok_count||0,facebook:userData.facebook_count||0,instagram:userData.instagram_count||0};
+  var userStats={total:userData.total_actions||0,youtube:userData.youtube_count||0,tiktok:userData.tiktok_count||0,facebook:userData.facebook_count||0,instagram:userData.instagram_count||0,night_count:userData.night_count||0,early_count:userData.early_count||0,weekend_count:userData.weekend_count||0,max_streak:userData.max_streak||0,max_daily:userData.max_daily||0,max_hourly:userData.max_hourly||0,days_active:userData.days_active||0,best_rank:userData.best_rank||999};
   var lv=GAME.getLevel(userStats.total);
   var progress=GAME.getXpProgress(userStats.total);
   var earnedBadges=GAME.getBadges(userStats);
   
-  // Stats
+  // Stats - 2 rows
   var html='<div class="game-stat-card"><div class="game-stat-val">Lv.'+lv.lv+'</div><div class="game-stat-lbl">'+lv.name+'</div></div>';
   html+='<div class="game-stat-card"><div class="game-stat-val">'+fmt(userStats.total)+'</div><div class="game-stat-lbl">รวมทั้งหมด</div></div>';
-  html+='<div class="game-stat-card"><div class="game-stat-val">'+fmt(userStats.youtube)+'</div><div class="game-stat-lbl">📺 YouTube</div></div>';
-  html+='<div class="game-stat-card"><div class="game-stat-val">'+fmt(userStats.tiktok)+'</div><div class="game-stat-lbl">🎵 TikTok</div></div>';
-  html+='<div class="game-stat-card"><div class="game-stat-val">'+fmt(userStats.facebook)+'</div><div class="game-stat-lbl">📘 Facebook</div></div>';
+  html+='<div class="game-stat-card"><div class="game-stat-val">'+fmt(userStats.days_active)+'</div><div class="game-stat-lbl">📅 วันทำงาน</div></div>';
+  html+='<div class="game-stat-card"><div class="game-stat-val">'+fmt(userStats.max_daily)+'</div><div class="game-stat-lbl">⚡ สูงสุด/วัน</div></div>';
+  html+='<div class="game-stat-card"><div class="game-stat-val">'+fmt(userStats.max_hourly)+'</div><div class="game-stat-lbl">🚀 สูงสุด/ชม.</div></div>';
   statsEl.innerHTML=html;
   
-  // Badges
-  var badgeHtml='<div style="margin-bottom:8px;color:var(--dim);font-size:13px">🏅 Badges ('+earnedBadges.length+'/'+GAME.badges.length+')</div>';
-  GAME.badges.forEach(function(b){
-    var earned=earnedBadges.find(function(e){return e.id===b.id;});
-    badgeHtml+='<div class="game-badge-toggle'+(earned?' earned':' locked')+'"><span class="badge-icon">'+b.icon+'</span><span>'+b.name+'</span></div>';
+  // Badges by category
+  var cats=GAME.getBadgesByCategory();
+  var catNames={milestone:'🏆 Milestone',platform:'📱 Platform',special:'⭐ Special',time:'⏰ Time',streak:'🔥 Streak',speed:'⚡ Speed'};
+  var badgeHtml='<div style="margin-bottom:12px;color:var(--text);font-size:14px;font-weight:600">🏅 Badges ('+earnedBadges.length+'/'+GAME.badges.length+')</div>';
+  Object.keys(cats).forEach(function(cat){
+    if(!cats[cat].length)return;
+    badgeHtml+='<div style="margin:12px 0 6px;color:var(--dim);font-size:12px">'+catNames[cat]+'</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">';
+    cats[cat].forEach(function(b){
+      var earned=earnedBadges.find(function(e){return e.id===b.id;});
+      badgeHtml+='<div class="game-badge-toggle'+(earned?' earned':' locked')+'" title="'+b.desc+'"><span class="badge-icon">'+b.icon+'</span><span style="font-size:12px">'+b.name+'</span></div>';
+    });
+    badgeHtml+='</div>';
   });
   badgesEl.innerHTML=badgeHtml;
 }
@@ -796,7 +846,7 @@ function renderGameLeaderboard(stats){
   stats.slice(0,10).forEach(function(s,i){
     var name=s.admin_name||(s.admin_email||'').split('@')[0];
     var initial=name.charAt(0).toUpperCase();
-    var userStats={total:s.total_actions||0,youtube:s.youtube_count||0,tiktok:s.tiktok_count||0,facebook:s.facebook_count||0,instagram:s.instagram_count||0};
+    var userStats={total:s.total_actions||0,youtube:s.youtube_count||0,tiktok:s.tiktok_count||0,facebook:s.facebook_count||0,instagram:s.instagram_count||0,night_count:s.night_count||0,early_count:s.early_count||0,weekend_count:s.weekend_count||0,max_streak:s.max_streak||0,max_daily:s.max_daily||0,max_hourly:s.max_hourly||0,days_active:s.days_active||0,best_rank:s.best_rank||999};
     var lv=GAME.getLevel(userStats.total);
     var badges=GAME.getBadges(userStats);
     var medals=['🥇','🥈','🥉'];

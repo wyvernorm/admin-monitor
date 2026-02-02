@@ -27,21 +27,62 @@ logs.get('/', async (c) => {
       LIMIT 100
     `).all();
 
-    // Get stats per user with platform breakdown
+    // Get stats per user with platform breakdown and advanced metrics
     const statsResult = await c.env.DB.prepare(`
       SELECT 
         admin_email,
         admin_name,
         COUNT(*) as total_actions,
         MAX(created_at) as last_active,
+        MIN(created_at) as first_active,
         SUM(CASE WHEN category = 'youtube' THEN 1 ELSE 0 END) as youtube_count,
         SUM(CASE WHEN category = 'tiktok' THEN 1 ELSE 0 END) as tiktok_count,
         SUM(CASE WHEN category = 'facebook' THEN 1 ELSE 0 END) as facebook_count,
-        SUM(CASE WHEN category = 'instagram' THEN 1 ELSE 0 END) as instagram_count
+        SUM(CASE WHEN category = 'instagram' THEN 1 ELSE 0 END) as instagram_count,
+        SUM(CASE WHEN CAST(strftime('%H', created_at) AS INTEGER) >= 0 AND CAST(strftime('%H', created_at) AS INTEGER) < 5 THEN 1 ELSE 0 END) as night_count,
+        SUM(CASE WHEN CAST(strftime('%H', created_at) AS INTEGER) >= 5 AND CAST(strftime('%H', created_at) AS INTEGER) < 7 THEN 1 ELSE 0 END) as early_count,
+        SUM(CASE WHEN CAST(strftime('%w', created_at) AS INTEGER) IN (0, 6) THEN 1 ELSE 0 END) as weekend_count,
+        COUNT(DISTINCT DATE(created_at)) as days_active
       FROM activity_logs
       GROUP BY admin_email
       ORDER BY total_actions DESC
     `).all();
+
+    // Get max daily count per user (for speed badges)
+    const dailyMaxResult = await c.env.DB.prepare(`
+      SELECT admin_email, MAX(daily_count) as max_daily
+      FROM (
+        SELECT admin_email, DATE(created_at) as day, COUNT(*) as daily_count
+        FROM activity_logs
+        GROUP BY admin_email, DATE(created_at)
+      )
+      GROUP BY admin_email
+    `).all();
+
+    // Get max hourly count per user (for speed badges)
+    const hourlyMaxResult = await c.env.DB.prepare(`
+      SELECT admin_email, MAX(hourly_count) as max_hourly
+      FROM (
+        SELECT admin_email, DATE(created_at) as day, CAST(strftime('%H', created_at) AS INTEGER) as hour, COUNT(*) as hourly_count
+        FROM activity_logs
+        GROUP BY admin_email, DATE(created_at), CAST(strftime('%H', created_at) AS INTEGER)
+      )
+      GROUP BY admin_email
+    `).all();
+
+    // Merge advanced stats
+    const dailyMaxMap = {};
+    const hourlyMaxMap = {};
+    (dailyMaxResult.results || []).forEach(r => { dailyMaxMap[r.admin_email] = r.max_daily; });
+    (hourlyMaxResult.results || []).forEach(r => { hourlyMaxMap[r.admin_email] = r.max_hourly; });
+
+    const enrichedStats = (statsResult.results || []).map((s, index) => ({
+      ...s,
+      max_daily: dailyMaxMap[s.admin_email] || 0,
+      max_hourly: hourlyMaxMap[s.admin_email] || 0,
+      max_streak: 1, // TODO: calculate actual streak
+      best_rank: index + 1
+    }));
 
     // Get today's count
     const todayResult = await c.env.DB.prepare(`
@@ -59,7 +100,7 @@ logs.get('/', async (c) => {
 
     return c.json({
       logs: logsResult.results || [],
-      stats: statsResult.results || [],
+      stats: enrichedStats,
       todayCount: todayResult?.count || 0,
       platformStats: platformResult.results || []
     });
