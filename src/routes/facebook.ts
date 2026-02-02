@@ -133,64 +133,32 @@ facebookRoutes.post('/video-stats', async (c) => {
       return c.json({ ...JSON.parse(cached), fromCache: true });
     }
 
-    // ใช้ Apify Facebook Videos Watch Scraper
-    const ACTOR_ID = 'lexis-solutions~facebook-videos-watch-scraper';
+    // ตรวจสอบ URL type
+    const isReel = url.includes('/reel/');
+    const isVideo = url.includes('/videos/') || url.includes('/watch');
     
-    const runRes = await fetch(
-      `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${token}&waitForFinish=120`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          urls: [url],
-          maxItems: 1
-        })
-      }
-    );
+    let result = null;
 
-    const runJson = await runRes.json() as any;
-    const datasetId = runJson?.data?.defaultDatasetId;
-
-    if (datasetId) {
-      // Wait a bit for data
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const dataRes = await fetch(
-        `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token}`
-      );
-
-      const items = await dataRes.json() as any[];
-      
-      if (items && items.length > 0) {
-        const video = items[0];
-        
-        const result = {
-          title: video.title || video.description?.substring(0, 100) || 'Facebook Video',
-          author: video.ownerName || video.pageTitle || video.pageName || '',
-          views: parseViewCount(video.views || video.viewCount || video.video_view_count || video.playCount || 0),
-          likes: Number(video.likes || video.reactions || video.likesCount || 0),
-          comments: Number(video.comments || video.commentCount || video.commentsCount || 0),
-          shares: Number(video.shares || video.shareCount || video.sharesCount || 0),
-          duration: video.duration || video.videoDuration || '',
-          thumbnail: video.thumbnail || video.thumbnailUrl || video.photoUrl || '',
-          publishedAt: video.publishedAt || video.date || video.time || '',
-          url: video.url || url
-        };
-
-        // Cache for 5 minutes
-        await cache?.put(cacheKey, JSON.stringify(result), { expirationTtl: 300 });
-
-        return c.json(result);
-      }
+    // ลอง Method 1: Facebook Posts Scraper (ใช้ได้กับหลาย URL type)
+    result = await tryPostsScraper(url, token);
+    
+    // ถ้าไม่ได้ผล ลอง Method 2: Facebook Reels Scraper (สำหรับ Reel โดยเฉพาะ)
+    if (!result && isReel) {
+      result = await tryReelsScraper(url, token);
     }
 
-    // Fallback: ใช้ Facebook Posts Scraper
-    const fallbackResult = await getFBVideoFallback(url, token, cache);
-    if (fallbackResult) {
-      return c.json(fallbackResult);
+    // ถ้าไม่ได้ผล ลอง Method 3: Facebook Videos Watch Scraper
+    if (!result) {
+      result = await tryVideosScraper(url, token);
     }
 
-    return c.json({ error: 'Video not found or private. Please check the URL.' }, 404);
+    if (result) {
+      // Cache for 5 minutes
+      await cache?.put(cacheKey, JSON.stringify(result), { expirationTtl: 300 });
+      return c.json(result);
+    }
+
+    return c.json({ error: 'ไม่สามารถดึงข้อมูลได้ วิดีโออาจเป็นส่วนตัวหรือ URL ไม่ถูกต้อง' }, 404);
 
   } catch (error: any) {
     console.error('FB Video Stats Error:', error);
@@ -198,8 +166,8 @@ facebookRoutes.post('/video-stats', async (c) => {
   }
 });
 
-// Fallback function - ใช้ posts scraper
-async function getFBVideoFallback(url: string, token: string, cache: KVNamespace | undefined) {
+// Method 1: Facebook Posts Scraper
+async function tryPostsScraper(url: string, token: string): Promise<any> {
   try {
     const ACTOR_ID = 'apify~facebook-posts-scraper';
     
@@ -219,7 +187,116 @@ async function getFBVideoFallback(url: string, token: string, cache: KVNamespace
 
     const runJson = await runRes.json() as any;
     const datasetId = runJson?.data?.defaultDatasetId;
+    if (!datasetId) return null;
 
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    const dataRes = await fetch(
+      `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token}`
+    );
+    const items = await dataRes.json() as any[];
+    
+    if (!items || items.length === 0) return null;
+
+    const item = items[0];
+    const views = parseViewCount(item.viewsCount || item.views || item.playCount || item.videoViewCount || 0);
+    const likes = Number(item.likes || item.likesCount || item.reactionsCount || 0);
+    
+    // ถ้าไม่มีข้อมูลเลย ถือว่าไม่สำเร็จ
+    if (views === 0 && likes === 0) return null;
+
+    return {
+      title: item.text?.substring(0, 100) || 'Facebook Video',
+      author: item.pageName || item.userName || item.ownerName || '',
+      views: views,
+      likes: likes,
+      comments: Number(item.comments || item.commentsCount || 0),
+      shares: Number(item.shares || item.sharesCount || 0),
+      duration: '',
+      thumbnail: item.photoUrl || item.thumbnailUrl || '',
+      publishedAt: item.time || item.date || '',
+      url: url
+    };
+  } catch (e) {
+    console.error('Posts Scraper Error:', e);
+    return null;
+  }
+}
+
+// Method 2: Facebook Reels Scraper (สำหรับ Reel โดยเฉพาะ)
+async function tryReelsScraper(url: string, token: string): Promise<any> {
+  try {
+    // ดึง Page URL จาก Reel URL
+    // เช่น https://www.facebook.com/reel/565531932748461 -> ต้องหา page
+    const ACTOR_ID = 'apify~facebook-reels-scraper';
+    
+    // Facebook Reels Scraper ต้องการ Page URL ไม่ใช่ Reel URL โดยตรง
+    // ลองใช้ approach อื่น
+    const ACTOR_ID_2 = 'louisdeconinck~facebook-reel-stats-scraper';
+    
+    const runRes = await fetch(
+      `https://api.apify.com/v2/acts/${ACTOR_ID_2}/runs?token=${token}&waitForFinish=120`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startUrls: [{ url }]
+        })
+      }
+    );
+
+    const runJson = await runRes.json() as any;
+    const datasetId = runJson?.data?.defaultDatasetId;
+    if (!datasetId) return null;
+
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    const dataRes = await fetch(
+      `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token}`
+    );
+    const items = await dataRes.json() as any[];
+    
+    if (!items || items.length === 0) return null;
+
+    const reel = items[0];
+    
+    return {
+      title: reel.description?.substring(0, 100) || reel.text?.substring(0, 100) || 'Facebook Reel',
+      author: reel.ownerName || reel.pageName || '',
+      views: parseViewCount(reel.views || reel.playCount || reel.viewCount || 0),
+      likes: Number(reel.likes || reel.reactions || 0),
+      comments: Number(reel.comments || reel.commentCount || 0),
+      shares: Number(reel.shares || reel.shareCount || 0),
+      duration: reel.duration || reel.videoLength || '',
+      thumbnail: reel.thumbnail || reel.thumbnailUrl || '',
+      publishedAt: reel.time || reel.date || '',
+      url: reel.canonicalUrl || url
+    };
+  } catch (e) {
+    console.error('Reels Scraper Error:', e);
+    return null;
+  }
+}
+
+// Method 3: Facebook Videos Watch Scraper
+async function tryVideosScraper(url: string, token: string): Promise<any> {
+  try {
+    const ACTOR_ID = 'lexis-solutions~facebook-videos-watch-scraper';
+    
+    const runRes = await fetch(
+      `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${token}&waitForFinish=120`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          urls: [url],
+          maxItems: 1
+        })
+      }
+    );
+
+    const runJson = await runRes.json() as any;
+    const datasetId = runJson?.data?.defaultDatasetId;
     if (!datasetId) return null;
 
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -227,34 +304,33 @@ async function getFBVideoFallback(url: string, token: string, cache: KVNamespace
     const dataRes = await fetch(
       `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token}`
     );
-
     const items = await dataRes.json() as any[];
+    
     if (!items || items.length === 0) return null;
 
-    const post = items[0];
+    const video = items[0];
     
-    const result = {
-      title: post.text?.substring(0, 100) || 'Facebook Video',
-      author: post.pageName || post.userName || post.ownerName || '',
-      views: parseViewCount(post.videoViewCount || post.viewsCount || post.views || post.playCount || 0),
-      likes: Number(post.likes || post.likesCount || post.reactionsCount || 0),
-      comments: Number(post.comments || post.commentsCount || 0),
-      shares: Number(post.shares || post.sharesCount || 0),
-      duration: '',
-      thumbnail: post.photoUrl || post.thumbnailUrl || '',
-      publishedAt: post.time || post.date || '',
-      url: url
+    return {
+      title: video.title || video.description?.substring(0, 100) || 'Facebook Video',
+      author: video.ownerName || video.pageTitle || video.pageName || '',
+      views: parseViewCount(video.views || video.viewCount || video.video_view_count || video.playCount || 0),
+      likes: Number(video.likes || video.reactions || video.likesCount || 0),
+      comments: Number(video.comments || video.commentCount || video.commentsCount || 0),
+      shares: Number(video.shares || video.shareCount || video.sharesCount || 0),
+      duration: video.duration || video.videoDuration || '',
+      thumbnail: video.thumbnail || video.thumbnailUrl || video.photoUrl || '',
+      publishedAt: video.publishedAt || video.date || video.time || '',
+      url: video.url || url
     };
-
-    // Cache
-    const cacheKey = `fb_video_${btoa(url).substring(0, 50)}`;
-    await cache?.put(cacheKey, JSON.stringify(result), { expirationTtl: 300 });
-
-    return result;
   } catch (e) {
-    console.error('FB Video Fallback Error:', e);
+    console.error('Videos Scraper Error:', e);
     return null;
   }
+}
+
+// Fallback function - ใช้ posts scraper (เก็บไว้เพื่อ backward compatibility)
+async function getFBVideoFallback(url: string, token: string, cache: KVNamespace | undefined) {
+  return await tryPostsScraper(url, token);
 }
 
 // ============= GET PAGE STATS =============
