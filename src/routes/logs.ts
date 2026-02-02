@@ -110,7 +110,7 @@ logs.get('/', async (c) => {
   }
 });
 
-// Add new log entry
+// Add new log entry (with deduplication)
 logs.post('/', async (c) => {
   const user = c.get('user');
   if (!user) {
@@ -123,6 +123,19 @@ logs.post('/', async (c) => {
 
     if (!action || !category) {
       return c.json({ error: 'Missing action or category' }, 400);
+    }
+
+    // Deduplication: Check if same log exists within last 5 seconds
+    const recentLog = await c.env.DB.prepare(`
+      SELECT id FROM activity_logs 
+      WHERE admin_email = ? AND action = ? AND category = ? 
+      AND created_at > datetime('now', '-5 seconds')
+      LIMIT 1
+    `).bind(user.email, action, category).first();
+
+    if (recentLog) {
+      // Skip duplicate
+      return c.json({ success: true, skipped: true });
     }
 
     // Get IP and User Agent

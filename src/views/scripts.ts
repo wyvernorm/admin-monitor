@@ -291,8 +291,13 @@ async function refreshOrders(){toast('🔄 กำลังรีเฟรช...'
 async function refreshLogs(){toast('🔄 กำลังรีเฟรช...');await loadLogs();toast('✅ รีเฟรชเรียบร้อย!');}
 
 var isSubmitting=false;
+var lastSubmitTime=0;
 async function handleAddMonitor(){
-  if(isSubmitting)return;
+  // Debounce - ป้องกันกดซ้ำภายใน 2 วินาที
+  var now=Date.now();
+  if(isSubmitting||now-lastSubmitTime<2000)return;
+  lastSubmitTime=now;
+  
   var url=document.getElementById('m-url').value;
   if(!url){toast('กรุณาใส่ URL','error');return;}
   var line=document.getElementById('m-line').value;
@@ -311,7 +316,7 @@ async function handleAddMonitor(){
     document.getElementById('m-url').value='';
     document.getElementById('m-view').value='';
     document.getElementById('m-line').value='';
-    logActivity('เพิ่มงาน Monitor','monitor',{url:url,viewTarget:Number(vt)||0,likeTarget:Number(lt)||0,lineId:line});
+    await logActivity('เพิ่มงาน Monitor','monitor',{url:url,viewTarget:Number(vt)||0,likeTarget:Number(lt)||0,lineId:line});
     loadOrders();loadDash();
   }catch(e){st.className='status-box error';st.textContent='❌ '+e.message;}
   finally{isSubmitting=false;if(btn)btn.disabled=false;}
