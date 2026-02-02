@@ -400,6 +400,7 @@ export function renderIndex(): string {
           <div class="calendar-icon">🤖</div>
           <h3>Bot Order Dashboard</h3>
           <p>ระบบจัดการออเดอร์และติดตามสถานะอัตโนมัติ</p>
+          <a href="https://t.me/iPVS_Orders_Ai_bot" target="_blank" class="telegram-link">📱 @iPVS_Orders_Ai_bot</a>
           <div class="calendar-features">
             <span class="feature-tag">📦 จัดการออเดอร์</span>
             <span class="feature-tag">📊 Dashboard</span>

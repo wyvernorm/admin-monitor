@@ -191,6 +191,8 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .feature-tag{background:var(--input);border:1px solid var(--border);padding:8px 16px;border-radius:20px;font-size:13px;color:var(--dim)}
 .calendar-btn{display:inline-flex;align-items:center;gap:8px;padding:16px 32px;font-size:16px;font-weight:600;background:linear-gradient(135deg,#fb923c,#f97316);color:#000;border-radius:12px;text-decoration:none;transition:all .3s}
 .calendar-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(251,146,60,.3)}
+.telegram-link{display:inline-block;color:#29b6f6;font-size:15px;font-weight:600;margin-bottom:20px;text-decoration:none;padding:8px 16px;background:rgba(41,182,246,.1);border-radius:8px;transition:all .2s}
+.telegram-link:hover{background:rgba(41,182,246,.2);transform:translateY(-1px)}
 
 /* Loading Animation - Progress Style */
 .loading-progress{display:flex;flex-direction:column;align-items:center;gap:12px}
