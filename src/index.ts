@@ -185,11 +185,24 @@ app.get('/api/logs/user/:email', async (c) => {
   }
 });
 
-// Log action helper
+// Log action helper with deduplication
 async function logAction(db: D1Database, email: string, action: string, category: string, details?: string) {
+  // Check for duplicate within 5 seconds
+  const recent = await db.prepare(`
+    SELECT id FROM activity_logs 
+    WHERE admin_email = ? AND action = ? AND category = ?
+    AND created_at > datetime('now', '-5 seconds')
+    LIMIT 1
+  `).bind(email, action, category).first();
+  
+  if (recent) {
+    console.log('[LOG] Skipped duplicate:', { email, action, category });
+    return null;
+  }
+  
   console.log('[LOG] Inserting:', { email, action, category, details });
   const result = await db.prepare(`
-    INSERT INTO logs (admin_email, action, category, details, created_at)
+    INSERT INTO activity_logs (admin_email, action, category, details, created_at)
     VALUES (?, ?, ?, ?, datetime('now'))
   `).bind(email, action, category, details || '').run();
   console.log('[LOG] Insert result:', result);
