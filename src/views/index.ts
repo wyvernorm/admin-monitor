@@ -43,6 +43,7 @@ export function renderIndex(): string {
       <div class="menu-item" data-page="instagram" onclick="mobileGoTo('instagram')"><span class="menu-icon">📷</span>Instagram</div>
       <div class="menu-item" data-page="logs" onclick="mobileGoTo('logs')"><span class="menu-icon">📜</span>Activity Logs</div>
       <div class="menu-item" data-page="calendar" onclick="mobileGoTo('calendar')"><span class="menu-icon">📅</span>ปฏิทินแจ้งเตือน</div>
+      <div class="menu-item" data-page="botorder" onclick="mobileGoTo('botorder')"><span class="menu-icon">🤖</span>บอทออเดอร์</div>
     </div>
     <aside class="sidebar">
       <div class="logo-box"><div class="logo-icon">📊</div><div><div class="logo-text">Admin Monitor</div><div class="logo-ver">v2.6</div></div></div>
@@ -60,6 +61,7 @@ export function renderIndex(): string {
       <div class="menu-group"><div class="menu-label">ระบบ</div>
         <div class="menu-item" data-page="logs"><span class="menu-icon">📜</span>Activity Logs</div>
         <div class="menu-item" data-page="calendar"><span class="menu-icon">📅</span>ปฏิทินแจ้งเตือน</div>
+        <div class="menu-item" data-page="botorder"><span class="menu-icon">🤖</span>บอทออเดอร์</div>
       </div>
     </aside>
     <main class="main">
@@ -375,6 +377,21 @@ export function renderIndex(): string {
             <span>เปิดปฏิทินแจ้งเตือน</span>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
           </a>
+        </div>
+      </div>
+
+    <!-- Bot Order (iframe) -->
+      <div id="page-botorder" class="page">
+        <div class="hero" style="background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(99,102,241,.05))">
+          <div class="hero-title">🤖 บอทออเดอร์</div>
+          <div class="hero-sub">ระบบจัดการออเดอร์อัตโนมัติ</div>
+        </div>
+        <div class="iframe-container">
+          <div id="botorder-loading" class="iframe-loading">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">กำลังโหลด...</div>
+          </div>
+          <iframe id="botorder-iframe" src="" frameborder="0" allowfullscreen></iframe>
         </div>
       </div>
 
