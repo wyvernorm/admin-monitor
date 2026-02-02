@@ -28,7 +28,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .logout-btn:hover{border-color:var(--danger);color:var(--danger)}
 .menu-group{margin-bottom:8px}
 .menu-label{font-size:10px;color:var(--dim);font-weight:600;padding:8px 12px 4px;text-transform:uppercase;letter-spacing:.5px}
-.menu-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;cursor:pointer;transition:all .15s;color:var(--muted);font-size:13px;border:1px solid transparent}
+.menu-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;cursor:pointer;transition:all .15s;color:var(--muted);font-size:13px;border:1px solid transparent;position:relative}
+.menu-badge{background:var(--accent);color:#000;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:auto;min-width:20px;text-align:center;animation:badgePop .3s ease}
+.menu-badge.hidden{display:none}
+@keyframes badgePop{0%{transform:scale(0)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
 .menu-item:hover{background:rgba(34,197,94,.05);color:var(--text)}
 .menu-item.active{background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(6,182,212,.1));color:var(--accent);border-color:rgba(34,197,94,.2)}
 .menu-icon{width:20px;text-align:center}

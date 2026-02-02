@@ -36,7 +36,7 @@ export function renderIndex(): string {
     <div class="mobile-nav" id="mobile-nav">
       <div class="user-box"><div class="avatar" id="mobile-avatar">?</div><div style="flex:1;min-width:0"><div id="mobile-user-name" class="user-name">Loading...</div><div id="mobile-user-email" class="user-email"></div></div><button onclick="logout()" class="logout-btn">ออก</button></div>
       <div class="menu-item active" data-page="dashboard" onclick="mobileGoTo('dashboard')"><span class="menu-icon">📊</span>Dashboard</div>
-      <div class="menu-item" data-page="monitor" onclick="mobileGoTo('monitor')"><span class="menu-icon">🧠</span>งานตรวจสอบ</div>
+      <div class="menu-item" data-page="monitor" onclick="mobileGoTo('monitor')"><span class="menu-icon">🧠</span>งานตรวจสอบ<span id="mobile-monitor-badge" class="menu-badge hidden">0</span></div>
       <div class="menu-item" data-page="youtube" onclick="mobileGoTo('youtube')"><span class="menu-icon">📺</span>YouTube</div>
       <div class="menu-item" data-page="tiktok" onclick="mobileGoTo('tiktok')"><span class="menu-icon">🎵</span>TikTok</div>
       <div class="menu-item" data-page="facebook" onclick="mobileGoTo('facebook')"><span class="menu-icon">📘</span>Facebook</div>
@@ -50,7 +50,7 @@ export function renderIndex(): string {
       <div class="user-box"><div class="avatar" id="user-avatar">?</div><div style="flex:1;min-width:0"><div id="user-name" class="user-name">Loading...</div><div id="user-email" class="user-email"></div></div><button onclick="logout()" class="logout-btn">ออก</button></div>
       <div class="menu-group"><div class="menu-label">หน้าหลัก</div>
         <div class="menu-item active" data-page="dashboard"><span class="menu-icon">📊</span>Dashboard</div>
-        <div class="menu-item" data-page="monitor"><span class="menu-icon">🧠</span>งานตรวจสอบ</div>
+        <div class="menu-item" data-page="monitor"><span class="menu-icon">🧠</span>งานตรวจสอบ<span id="monitor-badge" class="menu-badge hidden">0</span></div>
       </div>
       <div class="menu-group"><div class="menu-label">แพลตฟอร์ม</div>
         <div class="menu-item" data-page="youtube"><span class="menu-icon">📺</span>YouTube</div>

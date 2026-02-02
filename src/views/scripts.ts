@@ -206,9 +206,27 @@ async function loadOrders(){
     allOrders=d.orders||[];
     filterOrders();
     renderOrders(allOrders,'dash-orders');
+    updateBadge();
   }catch(e){
     showError(listEl,'โหลดรายการไม่สำเร็จ: '+e.message,'loadOrders()');
     showError(dashEl,'โหลดรายการไม่สำเร็จ','loadOrders()');
+  }
+}
+
+function updateBadge(){
+  var running=0;
+  allOrders.forEach(function(o){
+    if(getOrderStatus(o)==='running')running++;
+  });
+  var badge=document.getElementById('monitor-badge');
+  var mobileBadge=document.getElementById('mobile-monitor-badge');
+  if(badge){
+    if(running>0){badge.textContent=running;badge.classList.remove('hidden');}
+    else{badge.classList.add('hidden');}
+  }
+  if(mobileBadge){
+    if(running>0){mobileBadge.textContent=running;mobileBadge.classList.remove('hidden');}
+    else{mobileBadge.classList.add('hidden');}
   }
 }
 
