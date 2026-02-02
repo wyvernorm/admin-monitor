@@ -290,12 +290,19 @@ async function refreshDashboard(){toast('🔄 กำลังรีเฟรช.
 async function refreshOrders(){toast('🔄 กำลังรีเฟรช...');await loadOrders();toast('✅ รีเฟรชเรียบร้อย!');}
 async function refreshLogs(){toast('🔄 กำลังรีเฟรช...');await loadLogs();toast('✅ รีเฟรชเรียบร้อย!');}
 
+var isSubmitting=false;
 async function handleAddMonitor(){
+  if(isSubmitting)return;
   var url=document.getElementById('m-url').value;
+  if(!url){toast('กรุณาใส่ URL','error');return;}
   var line=document.getElementById('m-line').value;
   var vt=document.getElementById('m-chk-v').checked?document.getElementById('m-view').value:0;
   var lt=document.getElementById('m-chk-l').checked?document.getElementById('m-like').value:0;
   var st=document.getElementById('m-status');
+  var btn=document.querySelector('.submit-btn');
+  
+  isSubmitting=true;
+  if(btn)btn.disabled=true;
   st.className='status-box';st.textContent='⏳ กำลังเพิ่มงาน...';st.classList.remove('hidden');
   try{
     var d=await API.monitor.add({url:url,viewTarget:vt,likeTarget:lt,lineId:line});
@@ -307,6 +314,7 @@ async function handleAddMonitor(){
     logActivity('เพิ่มงาน Monitor','monitor',{url:url,viewTarget:Number(vt)||0,likeTarget:Number(lt)||0,lineId:line});
     loadOrders();loadDash();
   }catch(e){st.className='status-box error';st.textContent='❌ '+e.message;}
+  finally{isSubmitting=false;if(btn)btn.disabled=false;}
 }
 
 var allOrders=[];
