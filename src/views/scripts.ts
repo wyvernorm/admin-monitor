@@ -2,10 +2,103 @@ export const scripts = `
 <script>
 var user=null,lastYT=null,NL=String.fromCharCode(10),usedFB=[],usedIG=[],currentLogFilter='all',ttCache={},allLogs=[];
 
-async function checkAuth(){var savedToken=localStorage.getItem('session');if(!savedToken){showLogin();return;}try{var r=await fetch('/api/auth/me',{headers:{'X-Session-Token':savedToken}});var d=await r.json();if(d.user){user=d.user;showApp();}else{localStorage.removeItem('session');showLogin();}}catch(e){showLogin();}}
+// ==================== API MODULE ====================
+var API={
+  token:function(){return localStorage.getItem('session');},
+  
+  // Base request with retry
+  request:async function(endpoint,data,retries){
+    retries=retries||2;
+    var opts={headers:{'Content-Type':'application/json'}};
+    var tk=this.token();
+    if(tk)opts.headers['X-Session-Token']=tk;
+    if(data){opts.method='POST';opts.body=JSON.stringify(data);}
+    
+    for(var i=0;i<=retries;i++){
+      try{
+        var r=await fetch('/api/'+endpoint,opts);
+        if(!r.ok){
+          var err=await r.json().catch(function(){return{error:'HTTP '+r.status};});
+          throw new Error(err.error||'Request failed');
+        }
+        return await r.json();
+      }catch(e){
+        if(i===retries)throw e;
+        await new Promise(function(res){setTimeout(res,1000*(i+1));});
+      }
+    }
+  },
+  
+  // Shortcuts
+  get:function(endpoint){return this.request(endpoint);},
+  post:function(endpoint,data){return this.request(endpoint,data);},
+  
+  // Specific APIs
+  auth:{
+    me:function(){return API.get('auth/me');},
+    logout:function(){localStorage.removeItem('session');location.href='/';}
+  },
+  monitor:{
+    list:function(){return API.get('monitor/orders');},
+    add:function(data){return API.post('monitor/orders',data);},
+    delete:async function(id){
+      var tk=API.token();
+      var r=await fetch('/api/monitor/orders/'+id,{method:'DELETE',headers:{'X-Session-Token':tk}});
+      return r.json();
+    }
+  },
+  youtube:{
+    stats:function(url){return API.post('youtube/stats',{url:url});}
+  },
+  tiktok:{
+    stats:function(url){return API.post('tiktok/stats',{url:url});},
+    follower:function(url){return API.post('tiktok/follower',{url:url});}
+  },
+  facebook:{
+    stats:function(url){return API.post('facebook/stats',{url:url});},
+    videoStats:function(url){return API.post('facebook/video-stats',{url:url});}
+  },
+  instagram:{
+    stats:function(url){return API.post('instagram/stats',{url:url});}
+  },
+  logs:{
+    list:function(){return API.get('logs');},
+    add:function(data){return API.post('log-action',data);}
+  },
+  dashboard:{
+    stats:function(){return API.get('dashboard/stats');}
+  }
+};
+
+// Legacy api function for compatibility
+async function api(endpoint,data){return API.request(endpoint,data);}
+
+// ==================== SKELETON LOADING ====================
+function showSkeleton(el,type){
+  if(!el)return;
+  var html='';
+  if(type==='cards'){
+    for(var i=0;i<3;i++)html+='<div class="skeleton-card"><div class="skeleton-line w60"></div><div class="skeleton-line w100"></div><div class="skeleton-line w80"></div></div>';
+  }else if(type==='stats'){
+    html='<div class="skeleton-stats"><div class="skeleton-stat"></div><div class="skeleton-stat"></div><div class="skeleton-stat"></div><div class="skeleton-stat"></div></div>';
+  }else if(type==='table'){
+    for(var j=0;j<5;j++)html+='<div class="skeleton-row"><div class="skeleton-line w30"></div><div class="skeleton-line w50"></div><div class="skeleton-line w20"></div></div>';
+  }else{
+    html='<div class="skeleton-card"><div class="skeleton-line w60"></div><div class="skeleton-line w100"></div></div>';
+  }
+  el.innerHTML=html;
+}
+
+// ==================== ERROR HANDLING ====================
+function showError(el,msg,retryFn){
+  if(!el)return;
+  el.innerHTML='<div class="error-box"><div class="error-icon">⚠️</div><div class="error-msg">'+(msg||'เกิดข้อผิดพลาด')+'</div>'+(retryFn?'<button class="btn btn-secondary" onclick="'+retryFn+'">🔄 ลองใหม่</button>':'')+'</div>';
+}
+
+async function checkAuth(){var savedToken=localStorage.getItem('session');if(!savedToken){showLogin();return;}try{var d=await API.auth.me();if(d.user){user=d.user;showApp();}else{localStorage.removeItem('session');showLogin();}}catch(e){showLogin();}}
 function showLogin(){document.getElementById('login-page').classList.remove('hidden');document.getElementById('main-app').classList.add('hidden');}
 function showApp(){document.getElementById('login-page').classList.add('hidden');document.getElementById('main-app').classList.remove('hidden');if(user){document.getElementById('user-name').textContent=user.name||'Admin';document.getElementById('user-email').textContent=user.email||'';document.getElementById('mobile-user-name').textContent=user.name||'Admin';document.getElementById('mobile-user-email').textContent=user.email||'';var a=document.getElementById('user-avatar');var ma=document.getElementById('mobile-avatar');if(user.picture){a.innerHTML='<img src="'+user.picture+'">';ma.innerHTML='<img src="'+user.picture+'">';}else{var init=(user.name||'A').charAt(0).toUpperCase();a.textContent=init;ma.textContent=init;}}loadDash();loadOrders();}
-function logout(){localStorage.removeItem('session');location.href='/';}
+function logout(){API.auth.logout();}
 
 // Mobile Nav
 function toggleMobileNav(){var nav=document.getElementById('mobile-nav');var btn=document.querySelector('.hamburger');nav.classList.toggle('active');btn.classList.toggle('active');}
@@ -13,7 +106,6 @@ function mobileGoTo(pg){goTo(pg);document.getElementById('mobile-nav').classList
 
 checkAuth();
 
-async function api(endpoint,data){var token=localStorage.getItem('session');var opts={headers:{'Content-Type':'application/json'}};if(token)opts.headers['X-Session-Token']=token;if(data){opts.method='POST';opts.body=JSON.stringify(data);}var r=await fetch('/api/'+endpoint,opts);return r.json();}
 function fmt(n){return n?n.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g,','):'0';}
 function copy(id){var t=document.getElementById(id);if(t){navigator.clipboard.writeText(t.value);toast('คัดลอกแล้ว!');}}
 function toast(msg,type){var t=document.createElement('div');t.className='toast'+(type==='error'?' error':'');t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.remove();},3000);}
@@ -50,7 +142,28 @@ function switchTab(platform,tab){
   if(tabContent)tabContent.classList.add('active');
 }
 
-async function loadDash(){try{var d=await api('monitor/orders');var orders=d.orders||[];var total=orders.length,running=0,done=0;orders.forEach(function(o){var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;var vDone=vt>0?vc>=vt:true;var lDone=lt>0?lc>=lt:true;if(vDone&&lDone)done++;else running++;});var rate=total>0?Math.round((done/total)*100):0;document.getElementById('stat-total').textContent=total;document.getElementById('stat-running').textContent=running;document.getElementById('stat-done').textContent=done;document.getElementById('stat-rate').textContent=rate+'%';return true;}catch(e){return false;}}
+async function loadDash(){
+  var statsEl=document.querySelector('.stats-row');
+  try{
+    var d=await API.monitor.list();
+    var orders=d.orders||[];
+    var total=orders.length,running=0,done=0;
+    orders.forEach(function(o){
+      var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;
+      var vDone=vt>0?vc>=vt:true;var lDone=lt>0?lc>=lt:true;
+      if(vDone&&lDone)done++;else running++;
+    });
+    var rate=total>0?Math.round((done/total)*100):0;
+    document.getElementById('stat-total').textContent=total;
+    document.getElementById('stat-running').textContent=running;
+    document.getElementById('stat-done').textContent=done;
+    document.getElementById('stat-rate').textContent=rate+'%';
+    return true;
+  }catch(e){
+    toast('โหลด Dashboard ไม่สำเร็จ: '+e.message,'error');
+    return false;
+  }
+}
 
 // Fixed log function - sends to correct endpoint /api/log-action
 async function logActivity(action,category,details){try{var email=user?user.email:'unknown';await api('log-action',{action:action,category:category,details:details?JSON.stringify(details):'',email:email});}catch(e){console.error('Log error:',e);}}
@@ -60,10 +173,44 @@ async function refreshDashboard(){toast('🔄 กำลังรีเฟรช.
 async function refreshOrders(){toast('🔄 กำลังรีเฟรช...');await loadOrders();toast('✅ รีเฟรชเรียบร้อย!');}
 async function refreshLogs(){toast('🔄 กำลังรีเฟรช...');await loadLogs();toast('✅ รีเฟรชเรียบร้อย!');}
 
-async function handleAddMonitor(){var url=document.getElementById('m-url').value;var line=document.getElementById('m-line').value;var vt=document.getElementById('m-chk-v').checked?document.getElementById('m-view').value:0;var lt=document.getElementById('m-chk-l').checked?document.getElementById('m-like').value:0;var st=document.getElementById('m-status');st.className='status-box';st.textContent='⏳ กำลังเพิ่มงาน...';st.classList.remove('hidden');try{var d=await api('monitor/orders',{url:url,viewTarget:vt,likeTarget:lt,lineId:line});if(d.error)throw new Error(d.error);st.className='status-box success';st.textContent='✅ '+d.message;document.getElementById('m-url').value='';document.getElementById('m-view').value='';document.getElementById('m-line').value='';logActivity('เพิ่มงาน Monitor','monitor',{url:url,viewTarget:Number(vt)||0,likeTarget:Number(lt)||0,lineId:line});loadOrders();loadDash();}catch(e){st.className='status-box error';st.textContent='❌ '+e.message;}}
+async function handleAddMonitor(){
+  var url=document.getElementById('m-url').value;
+  var line=document.getElementById('m-line').value;
+  var vt=document.getElementById('m-chk-v').checked?document.getElementById('m-view').value:0;
+  var lt=document.getElementById('m-chk-l').checked?document.getElementById('m-like').value:0;
+  var st=document.getElementById('m-status');
+  st.className='status-box';st.textContent='⏳ กำลังเพิ่มงาน...';st.classList.remove('hidden');
+  try{
+    var d=await API.monitor.add({url:url,viewTarget:vt,likeTarget:lt,lineId:line});
+    if(d.error)throw new Error(d.error);
+    st.className='status-box success';st.textContent='✅ '+d.message;
+    document.getElementById('m-url').value='';
+    document.getElementById('m-view').value='';
+    document.getElementById('m-line').value='';
+    logActivity('เพิ่มงาน Monitor','monitor',{url:url,viewTarget:Number(vt)||0,likeTarget:Number(lt)||0,lineId:line});
+    loadOrders();loadDash();
+  }catch(e){st.className='status-box error';st.textContent='❌ '+e.message;}
+}
 
 var allOrders=[];
-async function loadOrders(){try{var d=await api('monitor/orders');allOrders=d.orders||[];filterOrders();renderOrders(allOrders,'dash-orders');}catch(e){}}
+async function loadOrders(){
+  var listEl=document.getElementById('orders-list');
+  var dashEl=document.getElementById('dash-orders');
+  
+  // Show skeleton
+  showSkeleton(listEl,'cards');
+  showSkeleton(dashEl,'cards');
+  
+  try{
+    var d=await API.monitor.list();
+    allOrders=d.orders||[];
+    filterOrders();
+    renderOrders(allOrders,'dash-orders');
+  }catch(e){
+    showError(listEl,'โหลดรายการไม่สำเร็จ: '+e.message,'loadOrders()');
+    showError(dashEl,'โหลดรายการไม่สำเร็จ','loadOrders()');
+  }
+}
 
 function filterOrders(){
   var searchEl=document.getElementById('order-search');
