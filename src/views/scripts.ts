@@ -2,6 +2,21 @@ export const scripts = `
 <script>
 var user=null,lastYT=null,NL=String.fromCharCode(10),usedFB=[],usedIG=[],currentLogFilter='all',ttCache={},allLogs=[];
 
+// Convert UTC to GMT+7 (Thailand)
+function toThaiTime(dateStr){
+  if(!dateStr)return '';
+  var d=new Date(dateStr);
+  // Add 7 hours for GMT+7
+  d.setHours(d.getHours()+7);
+  return d.toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+function toThaiDate(dateStr){
+  if(!dateStr)return '';
+  var d=new Date(dateStr);
+  d.setHours(d.getHours()+7);
+  return d.toLocaleDateString('th-TH',{day:'numeric',month:'short'});
+}
+
 // ==================== GAMIFICATION SYSTEM ====================
 var GAME={
   levels:[
@@ -404,16 +419,14 @@ function getPlatform(url){if(!url)return'youtube';if(url.indexOf('tiktok')>-1)re
 function getPlatformIcon(p){return p==='youtube'?'📺':p==='tiktok'?'🎵':p==='facebook'?'📘':p==='instagram'?'📷':'🌐';}
 function getStatusBadge(s){return s==='done'?'<span class="status-badge done">✅ เสร็จ</span>':s==='running'?'<span class="status-badge running">⏳ กำลังทำ</span>':'<span class="status-badge pending">⏸️ รอ</span>';}
 
-function renderOrders(orders,id){var el=document.getElementById(id);if(!el)return;if(!orders||!orders.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">ไม่พบรายการ</div><div class="empty-desc">'+(id==='orders-list'?'ลองเปลี่ยนตัวกรองหรือค้นหาใหม่':'เพิ่มงานใหม่เพื่อเริ่มติดตาม')+'</div></div>';return;}var h='';orders.forEach(function(o){var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;var vp=vt>0?Math.min(100,Math.round((vc/vt)*100)):0;var lp=lt>0?Math.min(100,Math.round((lc/lt)*100)):0;var time=o.created_at?new Date(o.created_at).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';var plat=getPlatform(o.url);var status=getOrderStatus(o);h+='<div class="order-card"><div class="order-head"><span class="order-plat">'+getPlatformIcon(plat)+' '+plat.charAt(0).toUpperCase()+plat.slice(1)+'</span>'+getStatusBadge(status)+'<span class="order-time">'+time+'</span></div><div class="order-url"><a href="'+o.url+'" target="_blank" class="order-link">'+o.url+'</a></div><div class="metrics">';if(vt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👀 วิว</span><span class="metric-val">'+fmt(vc)+'/'+fmt(vt)+' ('+vp+'%)</span></div><div class="metric-bar"><div class="metric-fill v" style="width:'+vp+'%"></div></div></div>';if(lt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👍 ไลค์</span><span class="metric-val">'+fmt(lc)+'/'+fmt(lt)+' ('+lp+'%)</span></div><div class="metric-bar"><div class="metric-fill l" style="width:'+lp+'%"></div></div></div>';h+='</div><div class="order-foot">'+(o.line_id?'<span class="order-line">💬 '+o.line_id+'</span>':'')+'<button class="del-btn" onclick="delOrder('+o.id+')">🗑️ ลบ</button></div></div>';});el.innerHTML=h;}
+function renderOrders(orders,id){var el=document.getElementById(id);if(!el)return;if(!orders||!orders.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">ไม่พบรายการ</div><div class="empty-desc">'+(id==='orders-list'?'ลองเปลี่ยนตัวกรองหรือค้นหาใหม่':'เพิ่มงานใหม่เพื่อเริ่มติดตาม')+'</div></div>';return;}var h='';orders.forEach(function(o){var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;var vp=vt>0?Math.min(100,Math.round((vc/vt)*100)):0;var lp=lt>0?Math.min(100,Math.round((lc/lt)*100)):0;var time=o.created_at?toThaiTime(o.created_at):'';var plat=getPlatform(o.url);var status=getOrderStatus(o);h+='<div class="order-card"><div class="order-head"><span class="order-plat">'+getPlatformIcon(plat)+' '+plat.charAt(0).toUpperCase()+plat.slice(1)+'</span>'+getStatusBadge(status)+'<span class="order-time">'+time+'</span></div><div class="order-url"><a href="'+o.url+'" target="_blank" class="order-link">'+o.url+'</a></div><div class="metrics">';if(vt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👀 วิว</span><span class="metric-val">'+fmt(vc)+'/'+fmt(vt)+' ('+vp+'%)</span></div><div class="metric-bar"><div class="metric-fill v" style="width:'+vp+'%"></div></div></div>';if(lt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👍 ไลค์</span><span class="metric-val">'+fmt(lc)+'/'+fmt(lt)+' ('+lp+'%)</span></div><div class="metric-bar"><div class="metric-fill l" style="width:'+lp+'%"></div></div></div>';h+='</div><div class="order-foot">'+(o.line_id?'<span class="order-line">💬 '+o.line_id+'</span>':'')+'<button class="del-btn" onclick="delOrder('+o.id+')">🗑️ ลบ</button></div></div>';});el.innerHTML=h;}
 var deleting={};
 async function delOrder(id){
-  console.log('delOrder called:',id);
-  if(deleting[id]){console.log('Already deleting:',id);return;}
+  if(deleting[id])return;
   if(!confirm('ลบงานนี้?'))return;
   deleting[id]=true;
   try{
     await fetch('/api/monitor/orders/'+id,{method:'DELETE',headers:{'X-Session-Token':localStorage.getItem('session')}});
-    await logActivity('ลบงาน Monitor','monitor',{orderId:id});
     toast('ลบแล้ว');
     loadOrders();loadDash();
   }catch(e){toast(e.message,'error');}
@@ -707,7 +720,7 @@ function renderLogsTable(){
     var cat=l.category||'system';
     var icon=platIcons[cat]||'📋';
     var color=platColors[cat]||'#6b7280';
-    var time=l.created_at?new Date(l.created_at).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+    var time=l.created_at?toThaiTime(l.created_at):'';
     var emailEnc=encodeURIComponent(l.admin_email||'');
     var actionText=l.action||'-';
     var detailsHtml='';
@@ -742,10 +755,10 @@ async function showUserDetail(emailEnc){
     var platIcons={youtube:'📺',tiktok:'🎵',facebook:'📘',instagram:'📷',monitor:'🧠'};
     var html='<div class="modal-header"><div class="modal-user"><div class="modal-avatar">'+initial+'</div><div><div class="modal-name">'+name+'</div><div class="modal-email">'+email+'</div></div></div><button class="modal-close" onclick="closeUserModal()">✕</button></div>';
     html+='<div class="modal-stats"><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.total_actions||0)+'</div><div class="modal-stat-lbl">กิจกรรมทั้งหมด</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.youtube_count||0)+'</div><div class="modal-stat-lbl">📺 YouTube</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.tiktok_count||0)+'</div><div class="modal-stat-lbl">🎵 TikTok</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.facebook_count||0)+'</div><div class="modal-stat-lbl">📘 Facebook</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.instagram_count||0)+'</div><div class="modal-stat-lbl">📷 Instagram</div></div></div>';
-    if(daily.length){html+='<div class="modal-section"><div class="modal-section-title">📅 กิจกรรมรายวัน (30 วันล่าสุด)</div><div class="daily-chart">';daily.slice(0,14).forEach(function(day){var max=Math.max.apply(null,daily.map(function(x){return x.count;}));var pct=max>0?Math.round((day.count/max)*100):0;var date=new Date(day.date).toLocaleDateString('th-TH',{day:'numeric',month:'short'});html+='<div class="daily-bar-wrap"><div class="daily-bar" style="height:'+pct+'%"></div><div class="daily-val">'+day.count+'</div><div class="daily-date">'+date+'</div></div>';});html+='</div></div>';}
+    if(daily.length){html+='<div class="modal-section"><div class="modal-section-title">📅 กิจกรรมรายวัน (30 วันล่าสุด)</div><div class="daily-chart">';daily.slice(0,14).forEach(function(day){var max=Math.max.apply(null,daily.map(function(x){return x.count;}));var pct=max>0?Math.round((day.count/max)*100):0;var date=toThaiDate(day.date);html+='<div class="daily-bar-wrap"><div class="daily-bar" style="height:'+pct+'%"></div><div class="daily-val">'+day.count+'</div><div class="daily-date">'+date+'</div></div>';});html+='</div></div>';}
     html+='<div class="modal-section"><div class="modal-section-title">📜 กิจกรรมล่าสุด</div><div class="modal-logs">';
     if(!logs.length)html+='<div class="empty" style="padding:20px">ยังไม่มีกิจกรรม</div>';
-    else{logs.slice(0,30).forEach(function(l){var cat=l.category||'system';var icon=platIcons[cat]||'📋';var color=platColors[cat]||'#6b7280';var time=l.created_at?new Date(l.created_at).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';html+='<div class="modal-log-item"><span class="modal-log-icon" style="background:'+color+'20;color:'+color+'">'+icon+'</span><span class="modal-log-action">'+(l.action||'-')+'</span><span class="modal-log-time">'+time+'</span></div>';});}
+    else{logs.slice(0,30).forEach(function(l){var cat=l.category||'system';var icon=platIcons[cat]||'📋';var color=platColors[cat]||'#6b7280';var time=l.created_at?toThaiTime(l.created_at):'';html+='<div class="modal-log-item"><span class="modal-log-icon" style="background:'+color+'20;color:'+color+'">'+icon+'</span><span class="modal-log-action">'+(l.action||'-')+'</span><span class="modal-log-time">'+time+'</span></div>';});}
     html+='</div></div>';
     content.innerHTML=html;
   }catch(e){content.innerHTML='<div style="text-align:center;padding:40px;color:var(--danger)">❌ '+e.message+'</div>';}
