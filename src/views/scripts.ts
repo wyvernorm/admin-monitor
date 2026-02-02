@@ -4,8 +4,13 @@ var user=null,lastYT=null,NL=String.fromCharCode(10),usedFB=[],usedIG=[],current
 
 async function checkAuth(){var savedToken=localStorage.getItem('session');if(!savedToken){showLogin();return;}try{var r=await fetch('/api/auth/me',{headers:{'X-Session-Token':savedToken}});var d=await r.json();if(d.user){user=d.user;showApp();}else{localStorage.removeItem('session');showLogin();}}catch(e){showLogin();}}
 function showLogin(){document.getElementById('login-page').classList.remove('hidden');document.getElementById('main-app').classList.add('hidden');}
-function showApp(){document.getElementById('login-page').classList.add('hidden');document.getElementById('main-app').classList.remove('hidden');if(user){document.getElementById('user-name').textContent=user.name||'Admin';document.getElementById('user-email').textContent=user.email||'';var a=document.getElementById('user-avatar');if(user.picture){a.innerHTML='<img src="'+user.picture+'">';}else{a.textContent=(user.name||'A').charAt(0).toUpperCase();}}loadDash();loadOrders();}
+function showApp(){document.getElementById('login-page').classList.add('hidden');document.getElementById('main-app').classList.remove('hidden');if(user){document.getElementById('user-name').textContent=user.name||'Admin';document.getElementById('user-email').textContent=user.email||'';document.getElementById('mobile-user-name').textContent=user.name||'Admin';document.getElementById('mobile-user-email').textContent=user.email||'';var a=document.getElementById('user-avatar');var ma=document.getElementById('mobile-avatar');if(user.picture){a.innerHTML='<img src="'+user.picture+'">';ma.innerHTML='<img src="'+user.picture+'">';}else{var init=(user.name||'A').charAt(0).toUpperCase();a.textContent=init;ma.textContent=init;}}loadDash();loadOrders();}
 function logout(){localStorage.removeItem('session');location.href='/';}
+
+// Mobile Nav
+function toggleMobileNav(){var nav=document.getElementById('mobile-nav');var btn=document.querySelector('.hamburger');nav.classList.toggle('active');btn.classList.toggle('active');}
+function mobileGoTo(pg){goTo(pg);document.getElementById('mobile-nav').classList.remove('active');document.querySelector('.hamburger').classList.remove('active');document.querySelectorAll('.mobile-nav .menu-item').forEach(function(m){m.classList.remove('active');});var mi=document.querySelector('.mobile-nav .menu-item[data-page="'+pg+'"]');if(mi)mi.classList.add('active');if(pg==='logs')loadLogs();if(pg==='dashboard'){loadDash();loadOrders();}if(pg==='monitor')loadOrders();}
+
 checkAuth();
 
 async function api(endpoint,data){var token=localStorage.getItem('session');var opts={headers:{'Content-Type':'application/json'}};if(token)opts.headers['X-Session-Token']=token;if(data){opts.method='POST';opts.body=JSON.stringify(data);}var r=await fetch('/api/'+endpoint,opts);return r.json();}

@@ -256,5 +256,37 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 
 /* Responsive */
 @media(max-width:1200px){.stats-row,.logs-stats{grid-template-columns:repeat(2,1fr)}.actions-row{grid-template-columns:repeat(3,1fr)}.monitor-grid{grid-template-columns:1fr}.logs-grid{grid-template-columns:1fr}.modal-stats{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:768px){.sidebar{display:none}.stats-row,.actions-row,.logs-stats{grid-template-columns:1fr}.metrics{grid-template-columns:1fr}.modal-stats{grid-template-columns:repeat(2,1fr)}.modal-box{margin:10px;border-radius:16px}}
+@media(max-width:768px){
+.sidebar{display:none}
+.stats-row,.actions-row,.logs-stats{grid-template-columns:1fr}
+.metrics{grid-template-columns:1fr}
+.modal-stats{grid-template-columns:repeat(2,1fr)}
+.modal-box{margin:10px;border-radius:16px}
+.mobile-header{display:flex!important}
+.main{padding:16px;padding-top:70px}
+.hero{display:none}
+#page-dashboard .stats-row{display:none}
+.tabs{flex-wrap:wrap}
+.tab{flex:none;padding:10px 14px;font-size:12px}
+.card{padding:16px}
+.form-row{flex-direction:column}
+.logs-filters{flex-wrap:nowrap;overflow-x:auto;padding-bottom:8px}
+.filter-chip{flex-shrink:0}
+}
+
+/* Mobile Header */
+.mobile-header{display:none;position:fixed;top:0;left:0;right:0;height:56px;background:var(--sidebar);border-bottom:1px solid var(--border);padding:0 16px;align-items:center;justify-content:space-between;z-index:1000}
+.mobile-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px}
+.mobile-logo-icon{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:16px}
+.hamburger{width:40px;height:40px;border-radius:10px;background:var(--input);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer}
+.hamburger span{width:18px;height:2px;background:var(--muted);border-radius:1px;transition:all .2s}
+.hamburger.active span:nth-child(1){transform:rotate(45deg) translate(4px,4px)}
+.hamburger.active span:nth-child(2){opacity:0}
+.hamburger.active span:nth-child(3){transform:rotate(-45deg) translate(4px,-4px)}
+
+/* Mobile Nav */
+.mobile-nav{display:none;position:fixed;top:56px;left:0;right:0;bottom:0;background:var(--sidebar);z-index:999;padding:16px;overflow-y:auto}
+.mobile-nav.active{display:block}
+.mobile-nav .menu-item{padding:14px 16px;font-size:14px}
+.mobile-nav .user-box{margin-bottom:16px}
 `;

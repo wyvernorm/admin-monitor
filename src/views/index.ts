@@ -26,6 +26,22 @@ export function renderIndex(): string {
   </div>
 
   <div id="main-app" class="app hidden">
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+      <div class="mobile-logo"><div class="mobile-logo-icon">📊</div><span>Admin Monitor</span></div>
+      <button class="hamburger" onclick="toggleMobileNav()"><span></span><span></span><span></span></button>
+    </div>
+    <!-- Mobile Nav -->
+    <div class="mobile-nav" id="mobile-nav">
+      <div class="user-box"><div class="avatar" id="mobile-avatar">?</div><div style="flex:1;min-width:0"><div id="mobile-user-name" class="user-name">Loading...</div><div id="mobile-user-email" class="user-email"></div></div><button onclick="logout()" class="logout-btn">ออก</button></div>
+      <div class="menu-item active" data-page="dashboard" onclick="mobileGoTo('dashboard')"><span class="menu-icon">📊</span>Dashboard</div>
+      <div class="menu-item" data-page="monitor" onclick="mobileGoTo('monitor')"><span class="menu-icon">🧠</span>งานตรวจสอบ</div>
+      <div class="menu-item" data-page="youtube" onclick="mobileGoTo('youtube')"><span class="menu-icon">📺</span>YouTube</div>
+      <div class="menu-item" data-page="tiktok" onclick="mobileGoTo('tiktok')"><span class="menu-icon">🎵</span>TikTok</div>
+      <div class="menu-item" data-page="facebook" onclick="mobileGoTo('facebook')"><span class="menu-icon">📘</span>Facebook</div>
+      <div class="menu-item" data-page="instagram" onclick="mobileGoTo('instagram')"><span class="menu-icon">📷</span>Instagram</div>
+      <div class="menu-item" data-page="logs" onclick="mobileGoTo('logs')"><span class="menu-icon">📜</span>Activity Logs</div>
+    </div>
     <aside class="sidebar">
       <div class="logo-box"><div class="logo-icon">📊</div><div><div class="logo-text">Admin Monitor</div><div class="logo-ver">v2.6</div></div></div>
       <div class="user-box"><div class="avatar" id="user-avatar">?</div><div style="flex:1;min-width:0"><div id="user-name" class="user-name">Loading...</div><div id="user-email" class="user-email"></div></div><button onclick="logout()" class="logout-btn">ออก</button></div>
@@ -45,7 +61,7 @@ export function renderIndex(): string {
     </aside>
     <main class="main">
       <!-- Dashboard -->
-      <div id="page-dashboard" class="page active">
+      <div id="page-dashboard" class="page page-dashboard active">
         <div class="hero"><div class="hero-title">👋 Welcome back!</div><div class="hero-sub">Admin Monitor Dashboard - จัดการและติดตามงานทั้งหมด</div></div>
         <div class="stats-row">
           <div class="stat-card"><div class="stat-icon c1">📦</div><div class="stat-val" id="stat-total" style="color:var(--accent)">0</div><div class="stat-lbl">ออเดอร์ทั้งหมด</div></div>
