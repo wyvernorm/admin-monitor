@@ -174,13 +174,19 @@ function addFBItem(){
   if(rows.length>=3){toast('สูงสุด 3 รายการ','error');return;}
   
   // หาว่าเลือกอะไรไปแล้ว
-  var used=[];
-  rows.forEach(function(r){used.push(r.querySelector('.fb-type').value);});
+  var hasLike=false,hasView=false,hasShare=false;
+  rows.forEach(function(r){
+    var v=r.querySelector('.fb-type').value;
+    if(v.indexOf('like')===0)hasLike=true;
+    if(v==='view')hasView=true;
+    if(v==='share')hasShare=true;
+  });
   
   // สร้าง options เฉพาะที่ยังไม่ได้เลือก
-  var allOpts=[{v:'like',t:'👍 ไลค์'},{v:'view',t:'👁️ วิว'},{v:'share',t:'🔗 แชร์'}];
   var opts='';
-  allOpts.forEach(function(o){if(used.indexOf(o.v)===-1)opts+='<option value="'+o.v+'">'+o.t+'</option>';});
+  if(!hasLike)opts+='<option value="like-mix">👍 ไลค์ (คละ)</option><option value="like-th1">👍 ไลค์ #TH1</option><option value="like-th2">👍 ไลค์ #TH2</option>';
+  if(!hasView)opts+='<option value="view">👁️ วิว</option>';
+  if(!hasShare)opts+='<option value="share">🔗 แชร์</option>';
   
   if(!opts){toast('เลือกครบทุกประเภทแล้ว','error');return;}
   
@@ -195,19 +201,30 @@ function removeFBItem(btn){btn.closest('.fb-row').remove();updateFBOptions();rei
 function reindexFBItems(){var rows=document.querySelectorAll('.fb-row');rows.forEach(function(r,i){r.querySelector('.form-label').textContent='#'+(i+1);});}
 function updateFBOptions(){
   var rows=document.querySelectorAll('.fb-row');
-  var used=[];
-  rows.forEach(function(r){used.push(r.querySelector('.fb-type').value);});
+  var hasLike=false,hasView=false,hasShare=false;
+  rows.forEach(function(r){
+    var v=r.querySelector('.fb-type').value;
+    if(v.indexOf('like')===0)hasLike=true;
+    if(v==='view')hasView=true;
+    if(v==='share')hasShare=true;
+  });
   
-  var allOpts=[{v:'like',t:'👍 ไลค์'},{v:'view',t:'👁️ วิว'},{v:'share',t:'🔗 แชร์'}];
   rows.forEach(function(r){
     var sel=r.querySelector('.fb-type');
     var cur=sel.value;
+    var isLike=cur.indexOf('like')===0;
+    var isView=cur==='view';
+    var isShare=cur==='share';
     var opts='';
-    allOpts.forEach(function(o){
-      if(o.v===cur||used.indexOf(o.v)===-1){
-        opts+='<option value="'+o.v+'"'+(o.v===cur?' selected':'')+'>'+o.t+'</option>';
-      }
-    });
+    
+    // ถ้าตัวเองเป็นไลค์ หรือยังไม่มีใครเลือกไลค์
+    if(isLike||!hasLike){
+      opts+='<option value="like-mix"'+(cur==='like-mix'?' selected':'')+'>👍 ไลค์ (คละ)</option>';
+      opts+='<option value="like-th1"'+(cur==='like-th1'?' selected':'')+'>👍 ไลค์ #TH1</option>';
+      opts+='<option value="like-th2"'+(cur==='like-th2'?' selected':'')+'>👍 ไลค์ #TH2</option>';
+    }
+    if(isView||!hasView)opts+='<option value="view"'+(cur==='view'?' selected':'')+'>👁️ วิว</option>';
+    if(isShare||!hasShare)opts+='<option value="share"'+(cur==='share'?' selected':'')+'>🔗 แชร์</option>';
     sel.innerHTML=opts;
   });
 }
@@ -233,11 +250,16 @@ try{
     var type=r.querySelector('.fb-type').value;
     var amt=Number(r.querySelector('.fb-amt').value)||0;
     var st=Number(r.querySelector('.fb-st').value)||0;
-    var label='';
-    if(type==='like'){st=st||stats.reactions||0;label='ไลค์';}
+    var label='',tag='';
+    if(type.indexOf('like')===0){
+      st=st||stats.reactions||0;
+      label='ไลค์';
+      if(type==='like-th1')tag=' #TH1';
+      else if(type==='like-th2')tag=' #TH2';
+    }
     else if(type==='share'){st=st||stats.shares||0;label='แชร์';}
     else if(type==='view'){st=st||stats.views||0;label='วิว';}
-    lines.push('เริ่ม '+fmt(st)+' + '+fmt(amt)+' = '+fmt(st+amt)+'++ '+label);
+    lines.push('เริ่ม '+fmt(st)+' + '+fmt(amt)+' = '+fmt(st+amt)+'++ '+label+tag);
   });
   cont.textContent=lines.join(NL);
   txt.value=lines.join(NL);
