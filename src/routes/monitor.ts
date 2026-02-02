@@ -163,6 +163,20 @@ monitorRoutes.delete('/orders/:id', async (c) => {
 
     await db.prepare('DELETE FROM orders WHERE id = ?').bind(id).run();
 
+    // Log activity (แสดงใน logs แต่ไม่นับสถิติ - ใช้ category 'system')
+    try {
+      await db.prepare(`
+        INSERT INTO activity_logs (admin_email, admin_name, action, category, details, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+      `).bind(
+        userEmail,
+        user?.name || userEmail.split('@')[0],
+        'ลบงาน Monitor',
+        'system',
+        JSON.stringify({orderId: id})
+      ).run();
+    } catch(e) { console.error('Log error:', e); }
+
     return c.json({ success: true, message: 'ลบงานเรียบร้อยแล้ว' });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
