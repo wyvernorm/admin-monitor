@@ -199,35 +199,26 @@ export function renderIndex(): string {
         </div>
         <div class="tabs">
           <button class="tab active" onclick="switchTab('facebook','stats')">🔍 ดูสถิติ</button>
-          <button class="tab" onclick="switchTab('facebook','video')">🎬 ดูวิว Video/Reel</button>
           <button class="tab" onclick="switchTab('facebook','summary')">🧾 สรุปงาน</button>
           <button class="tab" onclick="switchTab('facebook','batch')">📋 สรุปหลายรายการ</button>
         </div>
         <div id="facebook-tab-stats" class="tab-content active">
           <div class="card">
             <div class="card-title">🔍 ดูสถิติ Facebook</div>
-            <div class="form-group"><label class="form-label">Facebook URL</label><input id="fb-s-url" placeholder="URL โพสต์/เพจ" /></div>
+            <div class="form-group"><label class="form-label">Facebook URL</label><input id="fb-s-url" placeholder="URL โพสต์/เพจ/วิดีโอ/Reel" /></div>
+            <p style="font-size:11px;color:var(--dim);margin-bottom:16px">💡 รองรับ: โพสต์, เพจ, /videos/, /reel/, /watch?v=, fb.watch</p>
             <button class="btn" onclick="handleGetFBStats()">🔍 ดึงข้อมูล</button>
             <div id="fb-s-result" class="status-box hidden"></div>
-          </div>
-        </div>
-        <div id="facebook-tab-video" class="tab-content">
-          <div class="card">
-            <div class="card-title">🎬 ดูวิว Video / Reel Facebook</div>
-            <div class="form-group"><label class="form-label">Facebook Video/Reel URL</label><input id="fb-v-url" placeholder="https://www.facebook.com/watch?v=xxx หรือ /reel/xxx" /></div>
-            <p style="font-size:11px;color:var(--dim);margin-bottom:16px">💡 รองรับ: facebook.com/watch?v=, /videos/, /reel/, fb.watch</p>
-            <button class="btn" onclick="handleGetFBVideoStats()">🎬 ดึงข้อมูลวิดีโอ</button>
-            <div id="fb-v-result" class="status-box hidden"></div>
-            <div id="fb-v-card" class="video-result-card hidden">
-              <div class="video-thumb" id="fb-v-thumb"></div>
+            <div id="fb-s-card" class="video-result-card hidden">
+              <div class="video-thumb" id="fb-s-thumb"></div>
               <div class="video-info">
-                <div class="video-title" id="fb-v-title"></div>
-                <div class="video-meta" id="fb-v-meta"></div>
+                <div class="video-title" id="fb-s-title"></div>
+                <div class="video-meta" id="fb-s-meta"></div>
                 <div class="video-stats-grid">
-                  <div class="video-stat"><span class="video-stat-icon">👀</span><span class="video-stat-val" id="fb-v-views">0</span><span class="video-stat-lbl">Views</span></div>
-                  <div class="video-stat"><span class="video-stat-icon">👍</span><span class="video-stat-val" id="fb-v-likes">0</span><span class="video-stat-lbl">Likes</span></div>
-                  <div class="video-stat"><span class="video-stat-icon">💬</span><span class="video-stat-val" id="fb-v-comments">0</span><span class="video-stat-lbl">Comments</span></div>
-                  <div class="video-stat"><span class="video-stat-icon">🔄</span><span class="video-stat-val" id="fb-v-shares">0</span><span class="video-stat-lbl">Shares</span></div>
+                  <div class="video-stat"><span class="video-stat-icon">👀</span><span class="video-stat-val" id="fb-s-views">0</span><span class="video-stat-lbl">Views</span></div>
+                  <div class="video-stat"><span class="video-stat-icon">👍</span><span class="video-stat-val" id="fb-s-likes">0</span><span class="video-stat-lbl">Likes</span></div>
+                  <div class="video-stat"><span class="video-stat-icon">💬</span><span class="video-stat-val" id="fb-s-comments">0</span><span class="video-stat-lbl">Comments</span></div>
+                  <div class="video-stat"><span class="video-stat-icon">🔄</span><span class="video-stat-val" id="fb-s-shares">0</span><span class="video-stat-lbl">Shares</span></div>
                 </div>
               </div>
             </div>

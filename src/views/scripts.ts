@@ -60,33 +60,90 @@ async function handleGenTT(){var urls=document.getElementById('tt-urls').value.t
 async function handleGenTTAll(){var urls=document.getElementById('tta-urls').value.trim();var card=document.getElementById('tta-card');var cont=document.getElementById('tta-content');var txt=document.getElementById('tta-text');if(!urls){toast('กรุณาใส่ URL','error');return;}var lines=urls.split(NL).map(function(l){return l.trim();}).filter(function(l){return l&&l.indexOf('tiktok.com')>-1;});if(!lines.length){toast('ไม่พบ URL TikTok','error');return;}var hV=document.getElementById('tta-v').checked,hL=document.getElementById('tta-l').checked,hSv=document.getElementById('tta-sv').checked,hSh=document.getElementById('tta-sh').checked;if(!hV&&!hL&&!hSv&&!hSh){toast('กรุณาเลือกอย่างน้อย 1 ประเภท','error');return;}card.classList.remove('hidden');cont.textContent='⏳ กำลังดึงข้อมูล...';var results=[];for(var i=0;i<lines.length;i++){cont.textContent='⏳ '+(i+1)+'/'+lines.length;try{var d=await getTTStats(lines[i]);if(d.stats){var s=d.stats;var sum=(lines.length>1?(i+1)+'. ':'')+d.url+NL;if(hV){var a=Number(document.getElementById('tta-va').value)||0;if(a>0)sum+='เริ่ม '+fmt(s.views)+' + '+fmt(a)+' = '+fmt(s.views+a)+'++ วิว'+(document.getElementById('tta-vt').value==='th'?' #TH':'')+NL;}if(hL){var a2=Number(document.getElementById('tta-la').value)||0;var lt=document.getElementById('tta-lt').value;if(a2>0)sum+='เริ่ม '+fmt(s.likes)+' + '+fmt(a2)+' = '+fmt(s.likes+a2)+'++ ไลค์'+(lt==='hq'?' #HQ':lt==='th'?' #TH':' #1')+NL;}if(hSv){var a3=Number(document.getElementById('tta-sva').value)||0;if(a3>0)sum+='เริ่ม '+fmt(s.bookmarks)+' + '+fmt(a3)+' = '+fmt(s.bookmarks+a3)+'++ เซฟ'+NL;}if(hSh){var a4=Number(document.getElementById('tta-sha').value)||0;if(a4>0)sum+='เริ่ม '+fmt(s.shares)+' + '+fmt(a4)+' = '+fmt(s.shares+a4)+'++ แชร์'+NL;}results.push(sum.trim());}else results.push((i+1)+'. ❌ ไม่สามารถดึงข้อมูล');}catch(e){results.push((i+1)+'. ❌ '+e.message);}if(i<lines.length-1)await new Promise(function(r){setTimeout(r,500);});}cont.textContent=results.join(NL+NL);txt.value=results.join(NL+NL);logActivity('สรุปงาน TikTok รวม','tiktok',{count:lines.length});toast('สร้างสรุปแล้ว');}
 async function handleGenTTF(){var urls=document.getElementById('ttf-urls').value.trim();var type=document.getElementById('ttf-type').value;var amt=Number(document.getElementById('ttf-amt').value)||0;var card=document.getElementById('ttf-card');var cont=document.getElementById('ttf-content');var txt=document.getElementById('ttf-text');if(!urls||!amt){toast('กรุณากรอกข้อมูล','error');return;}var lines=urls.split(NL).map(function(l){return l.trim();}).filter(function(l){return l;});card.classList.remove('hidden');cont.textContent='⏳ กำลังดึงข้อมูล...';var tl=type==='hq'?'#HQ':type==='th'?'#TH':'#1';var results=[];for(var i=0;i<lines.length;i++){cont.textContent='⏳ '+(i+1)+'/'+lines.length;try{var d=await api('tiktok/follower',{url:lines[i]});if(d.followers!==undefined)results.push((lines.length>1?(i+1)+'. ':'')+'ฟอลโล่ TikTok'+NL+'ลิงก์ : '+d.profileUrl+NL+'แพ็คเกจ '+fmt(amt)+' ฟอล '+tl+NL+'เพิ่มจาก '+fmt(d.followers)+' ฟอล'+NL+'จะครบที่ '+fmt(d.followers+amt)+'++ ฟอล');else results.push((i+1)+'. ❌ ไม่สามารถดึงข้อมูล');}catch(e){results.push((i+1)+'. ❌ '+e.message);}if(i<lines.length-1)await new Promise(function(r){setTimeout(r,500);});}cont.textContent=results.join(NL+NL);txt.value=results.join(NL+NL);logActivity('TikTok Follower','tiktok',{type:type,count:lines.length});toast('สร้างสรุปแล้ว');}
 
-async function handleGetFBStats(){var url=document.getElementById('fb-s-url').value;var r=document.getElementById('fb-s-result');r.className='status-box';r.textContent='⏳ กำลังดึงข้อมูล...';r.classList.remove('hidden');try{var d=await api('facebook/stats',{url:url});if(d.error)throw new Error(d.error);r.className='status-box success';if(d.type==='page')r.textContent='📘 '+d.pageName+NL+'👍 ไลค์: '+fmt(d.likes)+NL+'👥 ฟอลโลว์: '+fmt(d.followers);else{var s=d.stats||{};r.textContent='📝 โพสต์ Facebook'+NL+'❤️ รีแอคชั่น: '+fmt(s.reactions||0)+NL+'💬 คอมเมนต์: '+fmt(s.comments||0)+NL+'🔗 แชร์: '+fmt(s.shares||0)+NL+'👀 วิว: '+fmt(s.views||0);}logActivity('ดูสถิติ Facebook','facebook',{url:url});}catch(e){r.className='status-box error';r.textContent='❌ '+e.message;}}
-
-async function handleGetFBVideoStats(){
-  var url=document.getElementById('fb-v-url').value;
-  var r=document.getElementById('fb-v-result');
-  var card=document.getElementById('fb-v-card');
-  r.className='status-box';r.textContent='⏳ กำลังดึงข้อมูลวิดีโอ...';r.classList.remove('hidden');
+var lastFBStats=null;
+async function handleGetFBStats(){
+  var url=document.getElementById('fb-s-url').value;
+  var r=document.getElementById('fb-s-result');
+  var card=document.getElementById('fb-s-card');
+  r.className='status-box';r.textContent='⏳ กำลังดึงข้อมูล...';r.classList.remove('hidden');
   card.classList.add('hidden');
-  if(!url){r.className='status-box error';r.textContent='❌ กรุณาใส่ URL';return;}
+  lastFBStats=null;
+  
+  // ตรวจสอบว่าเป็น Video/Reel หรือไม่
+  var isVideo=url.includes('/reel/')||url.includes('/videos/')||url.includes('/watch')||url.includes('fb.watch');
+  
   try{
-    var d=await api('facebook/video-stats',{url:url});
-    if(d.error)throw new Error(d.error);
-    r.classList.add('hidden');
-    card.classList.remove('hidden');
-    document.getElementById('fb-v-title').textContent=d.title||'Facebook Video';
-    document.getElementById('fb-v-meta').textContent=(d.author||'')+(d.duration?' • '+d.duration:'')+(d.publishedAt?' • '+d.publishedAt:'');
-    document.getElementById('fb-v-views').textContent=fmt(d.views||0);
-    document.getElementById('fb-v-likes').textContent=fmt(d.likes||0);
-    document.getElementById('fb-v-comments').textContent=fmt(d.comments||0);
-    document.getElementById('fb-v-shares').textContent=fmt(d.shares||0);
-    var thumb=document.getElementById('fb-v-thumb');
-    if(d.thumbnail){thumb.style.backgroundImage='url('+d.thumbnail+')';thumb.textContent='';}else{thumb.style.backgroundImage='';thumb.textContent='🎬';}
-    logActivity('ดูวิว FB Video','facebook',{url:url,views:d.views});
+    var d;
+    if(isVideo){
+      // ใช้ video-stats API
+      d=await api('facebook/video-stats',{url:url});
+      if(d.error)throw new Error(d.error);
+      
+      // แสดงผลแบบ Card
+      r.classList.add('hidden');
+      card.classList.remove('hidden');
+      document.getElementById('fb-s-title').textContent=d.title||'Facebook Video';
+      document.getElementById('fb-s-meta').textContent=(d.author||'')+(d.duration?' • '+d.duration:'')+(d.publishedAt?' • '+d.publishedAt:'');
+      document.getElementById('fb-s-views').textContent=fmt(d.views||0);
+      document.getElementById('fb-s-likes').textContent=fmt(d.likes||0);
+      document.getElementById('fb-s-comments').textContent=fmt(d.comments||0);
+      document.getElementById('fb-s-shares').textContent=fmt(d.shares||0);
+      var thumb=document.getElementById('fb-s-thumb');
+      if(d.thumbnail){thumb.style.backgroundImage='url('+d.thumbnail+')';thumb.textContent='';}else{thumb.style.backgroundImage='';thumb.textContent='🎬';}
+      
+      // เก็บไว้ใช้ในหน้าสรุปงาน
+      lastFBStats={type:'video',views:d.views||0,likes:d.likes||0,comments:d.comments||0,shares:d.shares||0,url:url};
+      logActivity('ดูสถิติ FB Video','facebook',{url:url,views:d.views});
+    }else{
+      // ใช้ stats API ปกติ
+      d=await api('facebook/stats',{url:url});
+      if(d.error)throw new Error(d.error);
+      r.className='status-box success';
+      if(d.type==='page'){
+        r.textContent='📘 '+d.pageName+NL+'👍 ไลค์: '+fmt(d.likes)+NL+'👥 ฟอลโลว์: '+fmt(d.followers);
+        lastFBStats={type:'page',likes:d.likes||0,followers:d.followers||0,url:url};
+      }else{
+        var s=d.stats||{};
+        r.textContent='📝 โพสต์ Facebook'+NL+'❤️ รีแอคชั่น: '+fmt(s.reactions||0)+NL+'💬 คอมเมนต์: '+fmt(s.comments||0)+NL+'🔗 แชร์: '+fmt(s.shares||0)+NL+'👀 วิว: '+fmt(s.views||0);
+        lastFBStats={type:'post',reactions:s.reactions||0,comments:s.comments||0,shares:s.shares||0,views:s.views||0,url:url};
+      }
+      logActivity('ดูสถิติ Facebook','facebook',{url:url});
+    }
     toast('ดึงข้อมูลสำเร็จ!');
   }catch(e){r.className='status-box error';r.textContent='❌ '+e.message;}
 }
-async function handleGenFB(){var url=document.getElementById('fb-url').value;var type=document.getElementById('fb-type').value;var amt=Number(document.getElementById('fb-amt').value)||0;var stIn=document.getElementById('fb-start');var card=document.getElementById('fb-card');var cont=document.getElementById('fb-content');var txt=document.getElementById('fb-text');if(!url||!amt){toast('กรุณากรอกข้อมูล','error');return;}card.classList.remove('hidden');cont.textContent='⏳ กำลังดึงข้อมูล...';try{var d=await api('facebook/stats',{url:url});var st=Number(stIn.value)||0;var label='',tl='';var stats=d.stats||{};if(type.indexOf('post-like')===0){st=st||stats.reactions||0;label='ไลค์';tl=type==='post-like-th1'?' #TH1':type==='post-like-th2'?' #TH2':'';}else if(type==='post-share'){st=st||stats.shares||0;label='แชร์';}else if(type==='video-view'){st=st||stats.views||0;label='วิว';}else{st=st||d.followers||0;label='ผู้ติดตาม';}cont.textContent='ลิงก์ : '+url+NL+'เริ่ม '+fmt(st)+' '+label+NL+'จำนวน '+fmt(amt)+' '+label+tl+NL+'สิ้นสุด '+fmt(st+amt)+'++ '+label;txt.value=cont.textContent;logActivity('สรุปงาน Facebook','facebook',{type:type});toast('สร้างสรุปแล้ว');}catch(e){cont.textContent='❌ '+e.message;}}
+async function handleGenFB(){var url=document.getElementById('fb-url').value;var type=document.getElementById('fb-type').value;var amt=Number(document.getElementById('fb-amt').value)||0;var stIn=document.getElementById('fb-start');var card=document.getElementById('fb-card');var cont=document.getElementById('fb-content');var txt=document.getElementById('fb-text');if(!url||!amt){toast('กรุณากรอกข้อมูล','error');return;}card.classList.remove('hidden');cont.textContent='⏳ กำลังดึงข้อมูล...';
+try{
+  var st=Number(stIn.value)||0;
+  var label='',tl='';
+  
+  // ถ้ามี lastFBStats และ URL ตรงกัน ใช้เลย
+  if(lastFBStats&&lastFBStats.url===url){
+    if(type.indexOf('post-like')===0){st=st||lastFBStats.reactions||lastFBStats.likes||0;label='ไลค์';tl=type==='post-like-th1'?' #TH1':type==='post-like-th2'?' #TH2':'';}
+    else if(type==='post-share'){st=st||lastFBStats.shares||0;label='แชร์';}
+    else if(type==='video-view'){st=st||lastFBStats.views||0;label='วิว';}
+    else{st=st||lastFBStats.followers||0;label='ผู้ติดตาม';}
+  }else{
+    // ตรวจสอบว่าเป็น Video/Reel หรือไม่
+    var isVideo=url.includes('/reel/')||url.includes('/videos/')||url.includes('/watch')||url.includes('fb.watch');
+    var d;
+    if(isVideo&&type==='video-view'){
+      d=await api('facebook/video-stats',{url:url});
+      st=st||d.views||0;label='วิว';
+    }else{
+      d=await api('facebook/stats',{url:url});
+      var stats=d.stats||{};
+      if(type.indexOf('post-like')===0){st=st||stats.reactions||0;label='ไลค์';tl=type==='post-like-th1'?' #TH1':type==='post-like-th2'?' #TH2':'';}
+      else if(type==='post-share'){st=st||stats.shares||0;label='แชร์';}
+      else if(type==='video-view'){st=st||stats.views||0;label='วิว';}
+      else{st=st||d.followers||0;label='ผู้ติดตาม';}
+    }
+  }
+  cont.textContent='ลิงก์ : '+url+NL+'เริ่ม '+fmt(st)+' '+label+NL+'จำนวน '+fmt(amt)+' '+label+tl+NL+'สิ้นสุด '+fmt(st+amt)+'++ '+label;
+  txt.value=cont.textContent;
+  logActivity('สรุปงาน Facebook','facebook',{type:type});
+  toast('สร้างสรุปแล้ว');
+}catch(e){cont.textContent='❌ '+e.message;}}
 function addFBItem(){var c=document.getElementById('fbb-items');var idx=c.querySelectorAll('.fb-row').length+1;var div=document.createElement('div');div.className='form-row mt-2 fb-row';div.innerHTML='<div style="flex:2"><label class="form-label">#'+idx+'</label><select class="fb-type"><option value="like-mix">👍 ไลค์</option><option value="like-th1">👍 #TH1</option><option value="like-th2">👍 #TH2</option><option value="share">🔗 แชร์</option><option value="view">👁️ วิว</option></select></div><div style="flex:1"><label class="form-label">จำนวน</label><input type="number" class="fb-amt" placeholder="1000"/></div><div style="flex:1"><label class="form-label">เริ่ม</label><input type="number" class="fb-st" placeholder="auto"/></div><div style="width:40px;padding-top:20px"><button class="del-btn" onclick="this.closest(\\'.fb-row\\').remove()">🗑️</button></div>';c.appendChild(div);}
 async function handleGenFBBatch(){var url=document.getElementById('fbb-url').value;var card=document.getElementById('fbb-card');var cont=document.getElementById('fbb-content');var txt=document.getElementById('fbb-text');var rows=document.querySelectorAll('.fb-row');if(!url||!rows.length){toast('กรุณากรอกข้อมูล','error');return;}card.classList.remove('hidden');cont.textContent='⏳ กำลังดึงข้อมูล...';try{var d=await api('facebook/stats',{url:url});var stats=d.stats||{};var lines=['ลิงก์ : '+url];rows.forEach(function(r){var type=r.querySelector('.fb-type').value;var amt=Number(r.querySelector('.fb-amt').value)||0;var st=Number(r.querySelector('.fb-st').value)||0;var label='',tl='';if(type.indexOf('like')===0){st=st||stats.reactions||0;label='ไลค์';tl=type==='like-th1'?' #TH1':type==='like-th2'?' #TH2':'';}else if(type==='share'){st=st||stats.shares||0;label='แชร์';}else{st=st||stats.views||0;label='วิว';}lines.push('เริ่ม '+fmt(st)+' + '+fmt(amt)+' = '+fmt(st+amt)+'++ '+label+tl);});cont.textContent=lines.join(NL);txt.value=lines.join(NL);logActivity('FB Batch','facebook',{itemCount:rows.length});toast('สร้างสรุปแล้ว');}catch(e){cont.textContent='❌ '+e.message;}}
 
