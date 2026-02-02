@@ -62,12 +62,16 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .game-stat-card{background:var(--input);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
 .game-stat-val{font-size:24px;font-weight:700;color:var(--accent)}
 .game-stat-lbl{font-size:12px;color:var(--dim);margin-top:4px}
-.game-user-badges{display:flex;flex-wrap:wrap;gap:8px}
-.game-badge-toggle{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--input);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .2s}
-.game-badge-toggle:hover{border-color:var(--accent)}
-.game-badge-toggle.earned{background:rgba(0,217,255,.1);border-color:var(--accent)}
-.game-badge-toggle .badge-icon{font-size:20px}
-.game-badge-toggle.locked .badge-icon{opacity:.4;filter:grayscale(1)}
+.game-user-badges{}
+.badge-category{margin-bottom:16px}
+.badge-category-title{font-size:12px;color:var(--dim);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.badge-category-grid{display:flex;flex-wrap:wrap;gap:8px}
+.game-badge-toggle{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--input);border:1px solid var(--border);border-radius:8px;transition:all .2s;font-size:12px}
+.game-badge-toggle:hover{border-color:var(--accent);transform:translateY(-1px)}
+.game-badge-toggle.earned{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.5);color:#22c55e}
+.game-badge-toggle .badge-icon{font-size:16px}
+.game-badge-toggle.locked{opacity:.4}
+.game-badge-toggle.locked .badge-icon{filter:grayscale(1)}
 .game-leaderboard{display:flex;flex-direction:column;gap:8px}
 .game-lb-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--input);border-radius:10px}
 .game-lb-rank{width:30px;text-align:center;font-weight:700}

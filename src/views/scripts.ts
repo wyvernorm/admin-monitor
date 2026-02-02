@@ -837,15 +837,16 @@ function loadUserGameStats(){
   // Badges by category
   var cats=GAME.getBadgesByCategory();
   var catNames={milestone:'🏆 Milestone',platform:'📱 Platform',special:'⭐ Special',time:'⏰ Time',streak:'🔥 Streak',speed:'⚡ Speed'};
-  var badgeHtml='<div style="margin-bottom:12px;color:var(--text);font-size:14px;font-weight:600">🏅 Badges ('+earnedBadges.length+'/'+GAME.badges.length+')</div>';
-  Object.keys(cats).forEach(function(cat){
-    if(!cats[cat].length)return;
-    badgeHtml+='<div style="margin:12px 0 6px;color:var(--dim);font-size:12px">'+catNames[cat]+'</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">';
+  var catOrder=['milestone','platform','special','time','streak','speed'];
+  var badgeHtml='<div style="margin-bottom:16px;color:var(--text);font-size:15px;font-weight:600">🏅 Badges ('+earnedBadges.length+'/'+GAME.badges.length+')</div>';
+  catOrder.forEach(function(cat){
+    if(!cats[cat]||!cats[cat].length)return;
+    badgeHtml+='<div class="badge-category"><div class="badge-category-title">'+catNames[cat]+'</div><div class="badge-category-grid">';
     cats[cat].forEach(function(b){
       var earned=earnedBadges.find(function(e){return e.id===b.id;});
-      badgeHtml+='<div class="game-badge-toggle'+(earned?' earned':' locked')+'" title="'+b.desc+'"><span class="badge-icon">'+b.icon+'</span><span style="font-size:12px">'+b.name+'</span></div>';
+      badgeHtml+='<div class="game-badge-toggle'+(earned?' earned':' locked')+'" title="'+b.desc+'"><span class="badge-icon">'+b.icon+'</span>'+b.name+'</div>';
     });
-    badgeHtml+='</div>';
+    badgeHtml+='</div></div>';
   });
   badgesEl.innerHTML=badgeHtml;
 }
