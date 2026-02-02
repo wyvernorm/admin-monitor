@@ -9,12 +9,7 @@ function logout(){localStorage.removeItem('session');location.href='/';}
 
 // Mobile Nav
 function toggleMobileNav(){var nav=document.getElementById('mobile-nav');var btn=document.querySelector('.hamburger');nav.classList.toggle('active');btn.classList.toggle('active');}
-function mobileGoTo(pg){goTo(pg);document.getElementById('mobile-nav').classList.remove('active');document.querySelector('.hamburger').classList.remove('active');document.querySelectorAll('.mobile-nav .menu-item').forEach(function(m){m.classList.remove('active');});var mi=document.querySelector('.mobile-nav .menu-item[data-page="'+pg+'"]');if(mi)mi.classList.add('active');if(pg==='logs')loadLogs();if(pg==='dashboard'){loadDash();loadOrders();}if(pg==='monitor')loadOrders();if(pg==='botorder')loadBotOrder();}
-
-function loadBotOrder(){var iframe=document.getElementById('botorder-iframe');var loading=document.getElementById('botorder-loading');if(iframe&&!iframe.src){iframe.src='https://script.google.com/macros/s/AKfycbzBsBTVnNW4rWjQBh_JU70_A-JZ1WBtuXf_RRStnBTI8u3EcpU_2yLxbAS796LYrniDTg/exec?page=Dashboard';iframe.onload=function(){if(loading)loading.classList.add('hidden');};}}
-
-// Sidebar menu click handlers
-document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.sidebar .menu-item').forEach(function(m){m.addEventListener('click',function(){var pg=this.getAttribute('data-page');if(pg==='botorder')loadBotOrder();});});});
+function mobileGoTo(pg){goTo(pg);document.getElementById('mobile-nav').classList.remove('active');document.querySelector('.hamburger').classList.remove('active');document.querySelectorAll('.mobile-nav .menu-item').forEach(function(m){m.classList.remove('active');});var mi=document.querySelector('.mobile-nav .menu-item[data-page="'+pg+'"]');if(mi)mi.classList.add('active');if(pg==='logs')loadLogs();if(pg==='dashboard'){loadDash();loadOrders();}if(pg==='monitor')loadOrders();}
 
 checkAuth();
 

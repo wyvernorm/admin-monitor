@@ -380,18 +380,25 @@ export function renderIndex(): string {
         </div>
       </div>
 
-    <!-- Bot Order (iframe) -->
+    <!-- Bot Order (External Link) -->
       <div id="page-botorder" class="page">
         <div class="hero" style="background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(99,102,241,.05))">
           <div class="hero-title">🤖 บอทออเดอร์</div>
           <div class="hero-sub">ระบบจัดการออเดอร์อัตโนมัติ</div>
         </div>
-        <div class="iframe-container">
-          <div id="botorder-loading" class="iframe-loading">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">กำลังโหลด...</div>
+        <div class="calendar-link-card">
+          <div class="calendar-icon">🤖</div>
+          <h3>Bot Order Dashboard</h3>
+          <p>ระบบจัดการออเดอร์และติดตามสถานะอัตโนมัติ</p>
+          <div class="calendar-features">
+            <span class="feature-tag">📦 จัดการออเดอร์</span>
+            <span class="feature-tag">📊 Dashboard</span>
+            <span class="feature-tag">⚡ อัตโนมัติ</span>
           </div>
-          <iframe id="botorder-iframe" src="" frameborder="0" allowfullscreen></iframe>
+          <a href="https://script.google.com/macros/s/AKfycbzBsBTVnNW4rWjQBh_JU70_A-JZ1WBtuXf_RRStnBTI8u3EcpU_2yLxbAS796LYrniDTg/exec?page=Dashboard" target="_blank" class="btn calendar-btn" style="background:linear-gradient(135deg,#6366f1,#4f46e5)">
+            <span>เปิดบอทออเดอร์</span>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
+          </a>
         </div>
       </div>
 
