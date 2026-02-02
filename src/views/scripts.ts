@@ -16,6 +16,18 @@ function toast(msg,type){var t=document.createElement('div');t.className='toast'
 document.querySelectorAll('.menu-item').forEach(function(m){m.addEventListener('click',function(){document.querySelectorAll('.menu-item').forEach(function(i){i.classList.remove('active');});document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});m.classList.add('active');var p=document.getElementById('page-'+m.dataset.page);if(p)p.classList.add('active');if(m.dataset.page==='logs')loadLogs();if(m.dataset.page==='dashboard'){loadDash();loadOrders();}if(m.dataset.page==='monitor')loadOrders();});});
 function goTo(pg){document.querySelectorAll('.menu-item').forEach(function(i){i.classList.remove('active');});document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});var m=document.querySelector('[data-page="'+pg+'"]');if(m)m.classList.add('active');var p=document.getElementById('page-'+pg);if(p)p.classList.add('active');}
 
+// Tab switching function
+function switchTab(platform,tab){
+  var page=document.getElementById('page-'+platform);
+  if(!page)return;
+  page.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  page.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});
+  var tabBtn=page.querySelector('.tab[onclick*="'+tab+'"]');
+  var tabContent=document.getElementById(platform+'-tab-'+tab);
+  if(tabBtn)tabBtn.classList.add('active');
+  if(tabContent)tabContent.classList.add('active');
+}
+
 async function loadDash(){try{var d=await api('monitor/orders');var orders=d.orders||[];var total=orders.length,running=0,done=0;orders.forEach(function(o){var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;var vDone=vt>0?vc>=vt:true;var lDone=lt>0?lc>=lt:true;if(vDone&&lDone)done++;else running++;});var rate=total>0?Math.round((done/total)*100):0;document.getElementById('stat-total').textContent=total;document.getElementById('stat-running').textContent=running;document.getElementById('stat-done').textContent=done;document.getElementById('stat-rate').textContent=rate+'%';return true;}catch(e){return false;}}
 
 // Fixed log function - sends to correct endpoint /api/log-action

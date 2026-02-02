@@ -76,6 +76,15 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 /* Cards */
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px}
 .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.card-title{font-size:16px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+/* Tabs */
+.tabs{display:flex;gap:8px;margin-bottom:20px;background:var(--input);padding:6px;border-radius:12px;border:1px solid var(--border)}
+.tab{flex:1;padding:12px 20px;background:transparent;border:none;border-radius:8px;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.tab:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.tab.active{background:var(--card);color:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.tab-content{display:none}
+.tab-content.active{display:block}
 
 /* Forms */
 .form-group{margin-bottom:16px}
