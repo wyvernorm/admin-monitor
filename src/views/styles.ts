@@ -201,6 +201,24 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes bounce{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(-8px);opacity:1}}
 
+/* Filter Bar */
+.filter-bar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.search-box{flex:1;min-width:200px;position:relative}
+.search-box .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;opacity:.5}
+.search-box input{width:100%;padding:12px 12px 12px 42px;background:var(--input);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;transition:all .2s}
+.search-box input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,217,255,.1)}
+.search-box input::placeholder{color:var(--dim)}
+.filter-select{padding:12px 16px;background:var(--input);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;cursor:pointer;min-width:140px}
+.filter-select:focus{outline:none;border-color:var(--accent)}
+.order-count{font-size:13px;color:var(--dim);margin-bottom:12px}
+.status-badge{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.status-badge.done{background:rgba(34,197,94,.15);color:#22c55e}
+.status-badge.running{background:rgba(59,130,246,.15);color:#3b82f6}
+.status-badge.pending{background:rgba(156,163,175,.15);color:#9ca3af}
+.order-line{font-size:12px;color:var(--dim);margin-right:auto}
+.order-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+@media(max-width:768px){.filter-bar{flex-direction:column}.search-box{min-width:100%}.filter-select{width:100%}}
+
 /* Activity Logs - New Design */
 .logs-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
 .logs-stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;display:flex;align-items:center;gap:16px;transition:all .2s}

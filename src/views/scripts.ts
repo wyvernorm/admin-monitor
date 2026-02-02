@@ -61,8 +61,48 @@ async function refreshOrders(){toast('🔄 กำลังรีเฟรช...'
 async function refreshLogs(){toast('🔄 กำลังรีเฟรช...');await loadLogs();toast('✅ รีเฟรชเรียบร้อย!');}
 
 async function handleAddMonitor(){var url=document.getElementById('m-url').value;var line=document.getElementById('m-line').value;var vt=document.getElementById('m-chk-v').checked?document.getElementById('m-view').value:0;var lt=document.getElementById('m-chk-l').checked?document.getElementById('m-like').value:0;var st=document.getElementById('m-status');st.className='status-box';st.textContent='⏳ กำลังเพิ่มงาน...';st.classList.remove('hidden');try{var d=await api('monitor/orders',{url:url,viewTarget:vt,likeTarget:lt,lineId:line});if(d.error)throw new Error(d.error);st.className='status-box success';st.textContent='✅ '+d.message;document.getElementById('m-url').value='';document.getElementById('m-view').value='';document.getElementById('m-line').value='';logActivity('เพิ่มงาน Monitor','monitor',{url:url,viewTarget:Number(vt)||0,likeTarget:Number(lt)||0,lineId:line});loadOrders();loadDash();}catch(e){st.className='status-box error';st.textContent='❌ '+e.message;}}
-async function loadOrders(){try{var d=await api('monitor/orders');renderOrders(d.orders,'orders-list');renderOrders(d.orders,'dash-orders');}catch(e){}}
-function renderOrders(orders,id){var el=document.getElementById(id);if(!el)return;if(!orders||!orders.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">ยังไม่มีงาน</div><div class="empty-desc">เพิ่มงานใหม่เพื่อเริ่มติดตาม</div></div>';return;}var h='';orders.forEach(function(o){var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;var vp=vt>0?Math.min(100,Math.round((vc/vt)*100)):0;var lp=lt>0?Math.min(100,Math.round((lc/lt)*100)):0;var time=o.created_at?new Date(o.created_at).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';h+='<div class="order-card"><div class="order-head"><span class="order-plat"><span class="live-dot"></span>YouTube</span><span class="order-time">'+time+'</span></div><div class="order-url"><a href="'+o.url+'" target="_blank" class="order-link">'+o.url+'</a></div><div class="metrics">';if(vt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👀 วิว</span><span class="metric-val">'+fmt(vc)+'/'+fmt(vt)+' ('+vp+'%)</span></div><div class="metric-bar"><div class="metric-fill v" style="width:'+vp+'%"></div></div></div>';if(lt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👍 ไลค์</span><span class="metric-val">'+fmt(lc)+'/'+fmt(lt)+' ('+lp+'%)</span></div><div class="metric-bar"><div class="metric-fill l" style="width:'+lp+'%"></div></div></div>';h+='</div><div class="order-foot"><button class="del-btn" onclick="delOrder('+o.id+')">🗑️ ลบ</button></div></div>';});el.innerHTML=h;}
+
+var allOrders=[];
+async function loadOrders(){try{var d=await api('monitor/orders');allOrders=d.orders||[];filterOrders();renderOrders(allOrders,'dash-orders');}catch(e){}}
+
+function filterOrders(){
+  var searchEl=document.getElementById('order-search');
+  var filterEl=document.getElementById('order-filter');
+  var platformEl=document.getElementById('order-platform');
+  var search=searchEl?searchEl.value.toLowerCase():'';
+  var status=filterEl?filterEl.value:'all';
+  var platform=platformEl?platformEl.value:'all';
+  
+  var filtered=allOrders.filter(function(o){
+    // Search filter
+    var matchSearch=!search||(o.url&&o.url.toLowerCase().indexOf(search)>-1)||(o.line_id&&o.line_id.toLowerCase().indexOf(search)>-1);
+    
+    // Status filter
+    var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;
+    var isDone=(vt>0&&vc>=vt)||(lt>0&&lc>=lt);
+    var isRunning=!isDone&&((vt>0&&vc>0)||(lt>0&&lc>0));
+    var isPending=!isDone&&!isRunning;
+    var matchStatus=status==='all'||(status==='done'&&isDone)||(status==='running'&&isRunning)||(status==='pending'&&isPending);
+    
+    // Platform filter
+    var plat='youtube';
+    if(o.url){if(o.url.indexOf('tiktok')>-1)plat='tiktok';else if(o.url.indexOf('facebook')>-1||o.url.indexOf('fb.watch')>-1)plat='facebook';else if(o.url.indexOf('instagram')>-1)plat='instagram';}
+    var matchPlatform=platform==='all'||platform===plat;
+    
+    return matchSearch&&matchStatus&&matchPlatform;
+  });
+  
+  var countEl=document.getElementById('order-count');
+  if(countEl)countEl.textContent='แสดง '+filtered.length+' จาก '+allOrders.length+' รายการ';
+  renderOrders(filtered,'orders-list');
+}
+
+function getOrderStatus(o){var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;if((vt>0&&vc>=vt)||(lt>0&&lc>=lt))return'done';if((vt>0&&vc>0)||(lt>0&&lc>0))return'running';return'pending';}
+function getPlatform(url){if(!url)return'youtube';if(url.indexOf('tiktok')>-1)return'tiktok';if(url.indexOf('facebook')>-1||url.indexOf('fb.watch')>-1)return'facebook';if(url.indexOf('instagram')>-1)return'instagram';return'youtube';}
+function getPlatformIcon(p){return p==='youtube'?'📺':p==='tiktok'?'🎵':p==='facebook'?'📘':p==='instagram'?'📷':'🌐';}
+function getStatusBadge(s){return s==='done'?'<span class="status-badge done">✅ เสร็จ</span>':s==='running'?'<span class="status-badge running">⏳ กำลังทำ</span>':'<span class="status-badge pending">⏸️ รอ</span>';}
+
+function renderOrders(orders,id){var el=document.getElementById(id);if(!el)return;if(!orders||!orders.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">ไม่พบรายการ</div><div class="empty-desc">'+(id==='orders-list'?'ลองเปลี่ยนตัวกรองหรือค้นหาใหม่':'เพิ่มงานใหม่เพื่อเริ่มติดตาม')+'</div></div>';return;}var h='';orders.forEach(function(o){var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;var vp=vt>0?Math.min(100,Math.round((vc/vt)*100)):0;var lp=lt>0?Math.min(100,Math.round((lc/lt)*100)):0;var time=o.created_at?new Date(o.created_at).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';var plat=getPlatform(o.url);var status=getOrderStatus(o);h+='<div class="order-card"><div class="order-head"><span class="order-plat">'+getPlatformIcon(plat)+' '+plat.charAt(0).toUpperCase()+plat.slice(1)+'</span>'+getStatusBadge(status)+'<span class="order-time">'+time+'</span></div><div class="order-url"><a href="'+o.url+'" target="_blank" class="order-link">'+o.url+'</a></div><div class="metrics">';if(vt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👀 วิว</span><span class="metric-val">'+fmt(vc)+'/'+fmt(vt)+' ('+vp+'%)</span></div><div class="metric-bar"><div class="metric-fill v" style="width:'+vp+'%"></div></div></div>';if(lt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👍 ไลค์</span><span class="metric-val">'+fmt(lc)+'/'+fmt(lt)+' ('+lp+'%)</span></div><div class="metric-bar"><div class="metric-fill l" style="width:'+lp+'%"></div></div></div>';h+='</div><div class="order-foot">'+(o.line_id?'<span class="order-line">💬 '+o.line_id+'</span>':'')+'<button class="del-btn" onclick="delOrder('+o.id+')">🗑️ ลบ</button></div></div>';});el.innerHTML=h;}
 async function delOrder(id){if(!confirm('ลบงานนี้?'))return;try{await fetch('/api/monitor/orders/'+id,{method:'DELETE',headers:{'X-Session-Token':localStorage.getItem('session')}});logActivity('ลบงาน Monitor','monitor',{orderId:id});toast('ลบแล้ว');loadOrders();loadDash();}catch(e){toast(e.message,'error');}}
 
 var YT_PKG={'3in1-hq':{'1000':{v:1000,l:50,s:50,lb:'1,000 วิว'},'2000':{v:2000,l:50,s:50,lb:'2,000 วิว'},'3000':{v:3000,l:50,s:50,lb:'3,000 วิว'},'5000':{v:5000,l:100,s:50,lb:'5,000 วิว'},'10000':{v:10000,l:200,s:50,lb:'10,000 วิว'},'30000':{v:30000,l:500,s:150,lb:'30,000 วิว'},'50000':{v:50000,l:1000,s:200,lb:'50,000 วิว'},'100000':{v:100000,l:3000,s:500,lb:'100,000 วิว'}},'3in1-normal':{'1000':{v:1000,l:50,s:50,lb:'1,000 วิว'},'2000':{v:2000,l:50,s:50,lb:'2,000 วิว'},'3000':{v:3000,l:50,s:50,lb:'3,000 วิว'},'5000':{v:5000,l:100,s:50,lb:'5,000 วิว'},'10000':{v:10000,l:200,s:50,lb:'10,000 วิว'},'30000':{v:30000,l:500,s:150,lb:'30,000 วิว'},'50000':{v:50000,l:1000,s:200,lb:'50,000 วิว'},'100000':{v:100000,l:3000,s:500,lb:'100,000 วิว'}},'hq':{'1000':{v:1000,lb:'1,000 วิว #HQ'},'2000':{v:2000,lb:'2,000 วิว #HQ'},'3000':{v:3000,lb:'3,000 วิว #HQ'},'5000':{v:5000,lb:'5,000 วิว #HQ'},'10000':{v:10000,lb:'10,000 วิว #HQ'},'30000':{v:30000,lb:'30,000 วิว #HQ'},'50000':{v:50000,lb:'50,000 วิว #HQ'},'100000':{v:100000,lb:'100,000 วิว #HQ'}},'normal':{'1000':{v:1000,lb:'1,000 วิว'},'2000':{v:2000,lb:'2,000 วิว'},'3000':{v:3000,lb:'3,000 วิว'},'5000':{v:5000,lb:'5,000 วิว'},'10000':{v:10000,lb:'10,000 วิว'},'30000':{v:30000,lb:'30,000 วิว'},'50000':{v:50000,lb:'50,000 วิว'},'100000':{v:100000,lb:'100,000 วิว'}},'minute':{'1000':{v:1000,lb:'1,000 วิว'},'2000':{v:2000,lb:'2,000 วิว'},'3000':{v:3000,lb:'3,000 วิว'},'5000':{v:5000,lb:'5,000 วิว'},'10000':{v:10000,lb:'10,000 วิว'},'30000':{v:30000,lb:'30,000 วิว'},'50000':{v:50000,lb:'50,000 วิว'},'100000':{v:100000,lb:'100,000 วิว'}},'subscriber':{'100':{sub:100,lb:'100+ Sub'},'200':{sub:200,lb:'200+ Sub'},'500':{sub:500,lb:'500+ Sub'},'1000':{sub:1000,lb:'1K Sub'},'2000':{sub:2000,lb:'2K Sub'},'3000':{sub:3000,lb:'3K Sub'},'5000':{sub:5000,lb:'5K Sub'},'10000':{sub:10000,lb:'10K Sub'}}};

@@ -99,6 +99,23 @@ export function renderIndex(): string {
           </div>
           <div>
             <div class="section-header"><div class="section-title"><span class="live-dot"></span>รายการงาน</div><button class="refresh-btn" onclick="refreshOrders()">🔄 รีเฟรช</button></div>
+            <div class="filter-bar">
+              <div class="search-box"><span class="search-icon">🔍</span><input id="order-search" placeholder="ค้นหา URL, ชื่อ, LINE ID..." oninput="filterOrders()"/></div>
+              <select id="order-filter" class="filter-select" onchange="filterOrders()">
+                <option value="all">📋 ทั้งหมด</option>
+                <option value="running">⏳ กำลังทำงาน</option>
+                <option value="done">✅ เสร็จแล้ว</option>
+                <option value="pending">⏸️ รอดำเนินการ</option>
+              </select>
+              <select id="order-platform" class="filter-select" onchange="filterOrders()">
+                <option value="all">🌐 ทุก Platform</option>
+                <option value="youtube">📺 YouTube</option>
+                <option value="tiktok">🎵 TikTok</option>
+                <option value="facebook">📘 Facebook</option>
+                <option value="instagram">📷 Instagram</option>
+              </select>
+            </div>
+            <div id="order-count" class="order-count"></div>
             <div id="orders-list"></div>
           </div>
         </div>
