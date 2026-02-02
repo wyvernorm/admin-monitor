@@ -125,6 +125,20 @@ monitorRoutes.post('/orders', async (c) => {
       userEmail
     ).run();
 
+    // Log activity (เพิ่มงานเท่านั้น)
+    try {
+      await db.prepare(`
+        INSERT INTO activity_logs (admin_email, admin_name, action, category, details, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+      `).bind(
+        userEmail,
+        user?.name || userEmail.split('@')[0],
+        'เพิ่มงาน Monitor',
+        'monitor',
+        JSON.stringify({url, viewTarget: viewTargetNum, likeTarget: likeTargetNum, lineId})
+      ).run();
+    } catch(e) { console.error('Log error:', e); }
+
     let summary = 'เพิ่มงานเรียบร้อยแล้ว\n';
     if (viewTargetNum > 0) {
       summary += `วิว: ${currentView.toLocaleString()} → ${finalViewTarget.toLocaleString()}\n`;
