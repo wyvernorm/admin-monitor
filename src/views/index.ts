@@ -74,6 +74,7 @@ export function renderIndex(): string {
         <div class="menu-item" data-page="logs"><span class="menu-icon">📜</span>Activity Logs</div>
         <div class="menu-item" data-page="calendar"><span class="menu-icon">📅</span>ปฏิทินแจ้งเตือน</div>
         <div class="menu-item" data-page="botorder"><span class="menu-icon">🤖</span>บอทออเดอร์</div>
+        <div class="menu-item hidden" data-page="gamification" id="menu-gamification"><span class="menu-icon">🎮</span>Gamification</div>
       </div>
     </aside>
     <main class="main">
@@ -422,6 +423,47 @@ export function renderIndex(): string {
             <span>เปิดบอทออเดอร์</span>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
           </a>
+        </div>
+      </div>
+
+      <!-- Gamification Admin -->
+      <div id="page-gamification" class="page">
+        <div class="hero" style="background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(168,85,247,.05))">
+          <div class="hero-title">🎮 Gamification Control</div>
+          <div class="hero-sub">จัดการระบบ Level และ Badges</div>
+        </div>
+        
+        <div class="game-admin-grid">
+          <!-- Level Settings -->
+          <div class="card">
+            <div class="card-title">📊 Level System</div>
+            <div class="level-list" id="level-list"></div>
+          </div>
+          
+          <!-- Badge Settings -->
+          <div class="card">
+            <div class="card-title">🏅 Badges</div>
+            <div class="badge-list" id="badge-list"></div>
+          </div>
+          
+          <!-- User Stats -->
+          <div class="card" style="grid-column:1/-1">
+            <div class="card-title">👥 User Stats & Manual Badge</div>
+            <div class="form-row" style="margin-bottom:16px">
+              <select id="game-user-select" class="filter-select" onchange="loadUserGameStats()">
+                <option value="">-- เลือก User --</option>
+              </select>
+              <button class="btn" onclick="refreshGameUsers()">🔄 รีเฟรช</button>
+            </div>
+            <div id="game-user-stats" class="game-user-stats"></div>
+            <div id="game-user-badges" class="game-user-badges"></div>
+          </div>
+          
+          <!-- Leaderboard Preview -->
+          <div class="card" style="grid-column:1/-1">
+            <div class="card-title">🏆 Leaderboard Preview</div>
+            <div id="game-leaderboard" class="game-leaderboard"></div>
+          </div>
         </div>
       </div>
 

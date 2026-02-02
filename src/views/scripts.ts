@@ -201,7 +201,7 @@ function showLoading(el,prefix){
 }
 function hideLoading(){clearInterval(loadingInterval);}
 
-document.querySelectorAll('.menu-item').forEach(function(m){m.addEventListener('click',function(){document.querySelectorAll('.menu-item').forEach(function(i){i.classList.remove('active');});document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});m.classList.add('active');var p=document.getElementById('page-'+m.dataset.page);if(p)p.classList.add('active');if(m.dataset.page==='logs')loadLogs();if(m.dataset.page==='dashboard'){loadDash();loadOrders();}if(m.dataset.page==='monitor')loadOrders();});});
+document.querySelectorAll('.menu-item').forEach(function(m){m.addEventListener('click',function(){document.querySelectorAll('.menu-item').forEach(function(i){i.classList.remove('active');});document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});m.classList.add('active');var p=document.getElementById('page-'+m.dataset.page);if(p)p.classList.add('active');if(m.dataset.page==='logs')loadLogs();if(m.dataset.page==='dashboard'){loadDash();loadOrders();}if(m.dataset.page==='monitor')loadOrders();if(m.dataset.page==='gamification')loadGameAdmin();});});
 function goTo(pg){document.querySelectorAll('.menu-item').forEach(function(i){i.classList.remove('active');});document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});var m=document.querySelector('[data-page="'+pg+'"]');if(m)m.classList.add('active');var p=document.getElementById('page-'+pg);if(p)p.classList.add('active');}
 
 // Tab switching function
@@ -683,4 +683,133 @@ async function showUserDetail(emailEnc){
 }
 
 function closeUserModal(){document.getElementById('user-modal').classList.add('hidden');}
+
+// ==================== GAMIFICATION ADMIN ====================
+var GAME_ADMIN_EMAIL='wyvernorm@gmail.com';
+var gameUsers=[];
+
+function checkGameAdmin(){
+  if(user&&user.email===GAME_ADMIN_EMAIL){
+    var menu=document.getElementById('menu-gamification');
+    if(menu)menu.classList.remove('hidden');
+  }
+}
+
+function loadGameAdmin(){
+  // Render Level list
+  var levelHtml='';
+  GAME.levels.forEach(function(lv){
+    levelHtml+='<div class="level-item"><div class="level-color" style="background:'+lv.color+'"></div><div class="level-info"><div class="level-name">Lv.'+lv.lv+' '+lv.name+'</div><div class="level-range">'+fmt(lv.min)+' - '+fmt(lv.max)+' งาน</div></div></div>';
+  });
+  document.getElementById('level-list').innerHTML=levelHtml;
+  
+  // Render Badge list
+  var badgeHtml='';
+  GAME.badges.forEach(function(b){
+    badgeHtml+='<div class="badge-item-admin"><div class="badge-icon">'+b.icon+'</div><div class="badge-info"><div class="badge-name">'+b.name+'</div><div class="badge-desc">'+b.desc+'</div></div><div class="badge-count" id="badge-count-'+b.id+'">0</div></div>';
+  });
+  document.getElementById('badge-list').innerHTML=badgeHtml;
+  
+  refreshGameUsers();
+}
+
+async function refreshGameUsers(){
+  try{
+    var d=await api('logs');
+    var stats=d.stats||[];
+    gameUsers=stats;
+    
+    // Update user dropdown
+    var select=document.getElementById('game-user-select');
+    var html='<option value="">-- เลือก User ('+stats.length+' คน) --</option>';
+    stats.forEach(function(s){
+      var name=s.admin_name||(s.admin_email||'').split('@')[0];
+      html+='<option value="'+s.admin_email+'">'+name+' ('+fmt(s.total_actions)+' งาน)</option>';
+    });
+    select.innerHTML=html;
+    
+    // Count badges
+    var badgeCounts={};
+    GAME.badges.forEach(function(b){badgeCounts[b.id]=0;});
+    stats.forEach(function(s){
+      var userStats={total:s.total_actions||0,youtube:s.youtube_count||0,tiktok:s.tiktok_count||0,facebook:s.facebook_count||0,instagram:s.instagram_count||0};
+      GAME.badges.forEach(function(b){
+        if(b.check(userStats))badgeCounts[b.id]++;
+      });
+    });
+    GAME.badges.forEach(function(b){
+      var el=document.getElementById('badge-count-'+b.id);
+      if(el)el.textContent=badgeCounts[b.id]+' คน';
+    });
+    
+    // Render leaderboard
+    renderGameLeaderboard(stats);
+    
+  }catch(e){console.error('Game users error:',e);}
+}
+
+function loadUserGameStats(){
+  var email=document.getElementById('game-user-select').value;
+  var statsEl=document.getElementById('game-user-stats');
+  var badgesEl=document.getElementById('game-user-badges');
+  
+  if(!email){
+    statsEl.innerHTML='<div style="color:var(--dim);padding:20px;text-align:center">เลือก User เพื่อดูสถิติ</div>';
+    badgesEl.innerHTML='';
+    return;
+  }
+  
+  var userData=gameUsers.find(function(u){return u.admin_email===email;});
+  if(!userData){
+    statsEl.innerHTML='<div style="color:var(--danger)">ไม่พบข้อมูล</div>';
+    return;
+  }
+  
+  var userStats={total:userData.total_actions||0,youtube:userData.youtube_count||0,tiktok:userData.tiktok_count||0,facebook:userData.facebook_count||0,instagram:userData.instagram_count||0};
+  var lv=GAME.getLevel(userStats.total);
+  var progress=GAME.getXpProgress(userStats.total);
+  var earnedBadges=GAME.getBadges(userStats);
+  
+  // Stats
+  var html='<div class="game-stat-card"><div class="game-stat-val">Lv.'+lv.lv+'</div><div class="game-stat-lbl">'+lv.name+'</div></div>';
+  html+='<div class="game-stat-card"><div class="game-stat-val">'+fmt(userStats.total)+'</div><div class="game-stat-lbl">รวมทั้งหมด</div></div>';
+  html+='<div class="game-stat-card"><div class="game-stat-val">'+fmt(userStats.youtube)+'</div><div class="game-stat-lbl">📺 YouTube</div></div>';
+  html+='<div class="game-stat-card"><div class="game-stat-val">'+fmt(userStats.tiktok)+'</div><div class="game-stat-lbl">🎵 TikTok</div></div>';
+  html+='<div class="game-stat-card"><div class="game-stat-val">'+fmt(userStats.facebook)+'</div><div class="game-stat-lbl">📘 Facebook</div></div>';
+  statsEl.innerHTML=html;
+  
+  // Badges
+  var badgeHtml='<div style="margin-bottom:8px;color:var(--dim);font-size:13px">🏅 Badges ('+earnedBadges.length+'/'+GAME.badges.length+')</div>';
+  GAME.badges.forEach(function(b){
+    var earned=earnedBadges.find(function(e){return e.id===b.id;});
+    badgeHtml+='<div class="game-badge-toggle'+(earned?' earned':' locked')+'"><span class="badge-icon">'+b.icon+'</span><span>'+b.name+'</span></div>';
+  });
+  badgesEl.innerHTML=badgeHtml;
+}
+
+function renderGameLeaderboard(stats){
+  var el=document.getElementById('game-leaderboard');
+  if(!stats.length){el.innerHTML='<div class="empty">ยังไม่มีข้อมูล</div>';return;}
+  
+  var html='';
+  stats.sort(function(a,b){return(b.total_actions||0)-(a.total_actions||0);});
+  stats.slice(0,10).forEach(function(s,i){
+    var name=s.admin_name||(s.admin_email||'').split('@')[0];
+    var initial=name.charAt(0).toUpperCase();
+    var userStats={total:s.total_actions||0,youtube:s.youtube_count||0,tiktok:s.tiktok_count||0,facebook:s.facebook_count||0,instagram:s.instagram_count||0};
+    var lv=GAME.getLevel(userStats.total);
+    var badges=GAME.getBadges(userStats);
+    var medals=['🥇','🥈','🥉'];
+    var medal=i<3?medals[i]:(i+1);
+    var badgeIcons=badges.slice(0,5).map(function(b){return'<span title="'+b.name+'">'+b.icon+'</span>';}).join('');
+    
+    html+='<div class="game-lb-row"><div class="game-lb-rank">'+medal+'</div><div class="game-lb-avatar" style="background:'+lv.color+'">'+initial+'</div><div class="game-lb-info"><div class="game-lb-name">'+name+'<span class="lb-level" style="background:'+lv.color+'">Lv.'+lv.lv+'</span></div><div class="game-lb-badges">'+badgeIcons+'</div></div><div class="game-lb-score">'+fmt(s.total_actions||0)+'</div></div>';
+  });
+  el.innerHTML=html;
+}
+
+// Check admin on page load
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(checkGameAdmin,1000);
+});
 </script>`;

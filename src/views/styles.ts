@@ -44,6 +44,39 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .lb-level{font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;margin-left:6px;color:#fff}
 .lb-badges{display:flex;gap:2px;margin-top:4px}
 .lb-badges span{font-size:12px}
+
+/* Gamification Admin Page */
+.game-admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.level-list,.badge-list{display:flex;flex-direction:column;gap:10px}
+.level-item,.badge-item-admin{display:flex;align-items:center;gap:12px;padding:12px;background:var(--input);border-radius:10px;border:1px solid var(--border)}
+.level-item .level-color{width:12px;height:12px;border-radius:50%}
+.level-item .level-info{flex:1}
+.level-item .level-name{font-weight:600;font-size:14px}
+.level-item .level-range{font-size:12px;color:var(--dim)}
+.badge-item-admin .badge-icon{font-size:24px}
+.badge-item-admin .badge-info{flex:1}
+.badge-item-admin .badge-name{font-weight:600;font-size:14px}
+.badge-item-admin .badge-desc{font-size:12px;color:var(--dim)}
+.badge-item-admin .badge-count{background:var(--accent);color:#000;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:700}
+.game-user-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+.game-stat-card{background:var(--input);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.game-stat-val{font-size:24px;font-weight:700;color:var(--accent)}
+.game-stat-lbl{font-size:12px;color:var(--dim);margin-top:4px}
+.game-user-badges{display:flex;flex-wrap:wrap;gap:8px}
+.game-badge-toggle{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--input);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .2s}
+.game-badge-toggle:hover{border-color:var(--accent)}
+.game-badge-toggle.earned{background:rgba(0,217,255,.1);border-color:var(--accent)}
+.game-badge-toggle .badge-icon{font-size:20px}
+.game-badge-toggle.locked .badge-icon{opacity:.4;filter:grayscale(1)}
+.game-leaderboard{display:flex;flex-direction:column;gap:8px}
+.game-lb-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--input);border-radius:10px}
+.game-lb-rank{width:30px;text-align:center;font-weight:700}
+.game-lb-avatar{width:40px;height:40px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-weight:700}
+.game-lb-info{flex:1}
+.game-lb-name{font-weight:600;display:flex;align-items:center;gap:8px}
+.game-lb-badges{display:flex;gap:4px;margin-top:4px}
+.game-lb-score{font-size:18px;font-weight:700;color:var(--accent)}
+@media(max-width:768px){.game-admin-grid{grid-template-columns:1fr}.game-user-stats{grid-template-columns:repeat(2,1fr)}}
 .avatar{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--blue));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;overflow:hidden}
 .avatar img{width:100%;height:100%;object-fit:cover}
 .user-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
