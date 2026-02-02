@@ -443,7 +443,8 @@ export function renderIndex(): string {
           <!-- Badge Settings -->
           <div class="card">
             <div class="card-title">🏅 Badges</div>
-            <div class="badge-list" id="badge-list"></div>
+            <div class="badge-list collapsed" id="badge-list"></div>
+            <button class="btn-text" id="badge-toggle" onclick="toggleBadges()">ดูเพิ่มเติม ▼</button>
           </div>
           
           <!-- User Stats -->

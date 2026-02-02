@@ -48,6 +48,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 /* Gamification Admin Page */
 .game-admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 .level-list,.badge-list{display:flex;flex-direction:column;gap:10px}
+.badge-list.collapsed{max-height:280px;overflow:hidden}
+.btn-text{background:none;border:none;color:var(--accent);cursor:pointer;padding:8px 0;font-size:13px;width:100%;text-align:center}
+.btn-text:hover{text-decoration:underline}
 .level-item,.badge-item-admin{display:flex;align-items:center;gap:12px;padding:12px;background:var(--input);border-radius:10px;border:1px solid var(--border)}
 .level-item .level-color{width:12px;height:12px;border-radius:50%}
 .level-item .level-info{flex:1}

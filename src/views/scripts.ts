@@ -777,6 +777,20 @@ function checkGameAdmin(){
   }
 }
 
+var badgesExpanded=false;
+function toggleBadges(){
+  var list=document.getElementById('badge-list');
+  var btn=document.getElementById('badge-toggle');
+  badgesExpanded=!badgesExpanded;
+  if(badgesExpanded){
+    list.classList.remove('collapsed');
+    btn.textContent='ย่อ ▲';
+  }else{
+    list.classList.add('collapsed');
+    btn.textContent='ดูเพิ่มเติม ▼';
+  }
+}
+
 function loadGameAdmin(){
   // Render Level list
   var levelHtml='';
