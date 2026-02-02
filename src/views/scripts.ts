@@ -16,10 +16,15 @@ function toast(msg,type){var t=document.createElement('div');t.className='toast'
 document.querySelectorAll('.menu-item').forEach(function(m){m.addEventListener('click',function(){document.querySelectorAll('.menu-item').forEach(function(i){i.classList.remove('active');});document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});m.classList.add('active');var p=document.getElementById('page-'+m.dataset.page);if(p)p.classList.add('active');if(m.dataset.page==='logs')loadLogs();if(m.dataset.page==='dashboard'){loadDash();loadOrders();}if(m.dataset.page==='monitor')loadOrders();});});
 function goTo(pg){document.querySelectorAll('.menu-item').forEach(function(i){i.classList.remove('active');});document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});var m=document.querySelector('[data-page="'+pg+'"]');if(m)m.classList.add('active');var p=document.getElementById('page-'+pg);if(p)p.classList.add('active');}
 
-async function loadDash(){try{var d=await api('monitor/orders');var orders=d.orders||[];var total=orders.length,running=0,done=0;orders.forEach(function(o){var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;var vDone=vt>0?vc>=vt:true;var lDone=lt>0?lc>=lt:true;if(vDone&&lDone)done++;else running++;});var rate=total>0?Math.round((done/total)*100):0;document.getElementById('stat-total').textContent=total;document.getElementById('stat-running').textContent=running;document.getElementById('stat-done').textContent=done;document.getElementById('stat-rate').textContent=rate+'%';}catch(e){}}
+async function loadDash(){try{var d=await api('monitor/orders');var orders=d.orders||[];var total=orders.length,running=0,done=0;orders.forEach(function(o){var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;var vDone=vt>0?vc>=vt:true;var lDone=lt>0?lc>=lt:true;if(vDone&&lDone)done++;else running++;});var rate=total>0?Math.round((done/total)*100):0;document.getElementById('stat-total').textContent=total;document.getElementById('stat-running').textContent=running;document.getElementById('stat-done').textContent=done;document.getElementById('stat-rate').textContent=rate+'%';return true;}catch(e){return false;}}
 
 // Fixed log function - sends to correct endpoint /api/log-action
 async function logActivity(action,category,details){try{var email=user?user.email:'unknown';await api('log-action',{action:action,category:category,details:details?JSON.stringify(details):'',email:email});}catch(e){console.error('Log error:',e);}}
+
+// Refresh functions with toast
+async function refreshDashboard(){toast('🔄 กำลังรีเฟรช...');await loadDash();await loadOrders();toast('✅ รีเฟรชเรียบร้อย!');}
+async function refreshOrders(){toast('🔄 กำลังรีเฟรช...');await loadOrders();toast('✅ รีเฟรชเรียบร้อย!');}
+async function refreshLogs(){toast('🔄 กำลังรีเฟรช...');await loadLogs();toast('✅ รีเฟรชเรียบร้อย!');}
 
 async function handleAddMonitor(){var url=document.getElementById('m-url').value;var vt=document.getElementById('m-chk-v').checked?document.getElementById('m-view').value:0;var lt=document.getElementById('m-chk-l').checked?document.getElementById('m-like').value:0;var st=document.getElementById('m-status');st.className='status-box';st.textContent='⏳ กำลังเพิ่มงาน...';st.classList.remove('hidden');try{var d=await api('monitor/orders',{url:url,viewTarget:vt,likeTarget:lt});if(d.error)throw new Error(d.error);st.className='status-box success';st.textContent='✅ '+d.message;document.getElementById('m-url').value='';document.getElementById('m-view').value='';logActivity('เพิ่มงาน Monitor','youtube',{url:url,viewTarget:vt,likeTarget:lt});loadOrders();loadDash();}catch(e){st.className='status-box error';st.textContent='❌ '+e.message;}}
 async function loadOrders(){try{var d=await api('monitor/orders');renderOrders(d.orders,'orders-list');renderOrders(d.orders,'dash-orders');}catch(e){}}
@@ -88,7 +93,8 @@ async function loadLogs(){
         var name=s.admin_name||(s.admin_email||'').split('@')[0]||'unknown';
         var medals=['🥇','🥈','🥉'];
         var medal=i<3?medals[i]:(i+1);
-        lbHtml+='<div class="lb-row"><div class="lb-medal">'+medal+'</div><div class="lb-user-avatar">'+initial+'</div><div class="lb-user-info"><div class="lb-user-name">'+name+'</div><div class="lb-user-email">'+(s.admin_email||'')+'</div></div><div class="lb-user-score">'+fmt(s.total_actions||0)+'</div></div>';
+        var emailEnc=encodeURIComponent(s.admin_email||'');
+        lbHtml+='<div class="lb-row clickable" onclick="showUserDetail(\\''+emailEnc+'\\')"><div class="lb-medal">'+medal+'</div><div class="lb-user-avatar">'+initial+'</div><div class="lb-user-info"><div class="lb-user-name">'+name+'</div><div class="lb-user-email">'+(s.admin_email||'')+'</div></div><div class="lb-user-score">'+fmt(s.total_actions||0)+'</div></div>';
       });
     }
     document.getElementById('leaderboard').innerHTML=lbHtml;
@@ -107,8 +113,8 @@ function renderLogsTable(){
     return;
   }
   emptyEl.classList.add('hidden');
-  var platColors={youtube:'#ff0000',tiktok:'#00d9ff',facebook:'#1877f2',instagram:'#e1306c'};
-  var platIcons={youtube:'📺',tiktok:'🎵',facebook:'📘',instagram:'📷',system:'⚙️'};
+  var platColors={youtube:'#ff0000',tiktok:'#00d9ff',facebook:'#1877f2',instagram:'#e1306c',monitor:'#22c55e'};
+  var platIcons={youtube:'📺',tiktok:'🎵',facebook:'📘',instagram:'📷',monitor:'🧠',system:'⚙️'};
   var html='';
   filtered.slice(0,50).forEach(function(l){
     var name=l.admin_name||(l.admin_email||'').split('@')[0]||'unknown';
@@ -117,7 +123,8 @@ function renderLogsTable(){
     var icon=platIcons[cat]||'📋';
     var color=platColors[cat]||'#6b7280';
     var time=l.created_at?new Date(l.created_at).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-    html+='<tr><td><div class="log-user"><div class="log-user-avatar">'+initial+'</div><div class="log-user-info"><div class="log-user-name">'+name+'</div><div class="log-user-email">'+(l.admin_email||'')+'</div></div></div></td><td><span class="log-platform" style="background:'+color+'20;color:'+color+'">'+icon+' '+cat+'</span></td><td class="log-action">'+(l.action||'-')+'</td><td class="log-time">'+time+'</td></tr>';
+    var emailEnc=encodeURIComponent(l.admin_email||'');
+    html+='<tr onclick="showUserDetail(\\''+emailEnc+'\\')"><td><div class="log-user clickable"><div class="log-user-avatar">'+initial+'</div><div class="log-user-info"><div class="log-user-name">'+name+'</div><div class="log-user-email">'+(l.admin_email||'')+'</div></div></div></td><td><span class="log-platform" style="background:'+color+'20;color:'+color+'">'+icon+' '+cat+'</span></td><td class="log-action">'+(l.action||'-')+'</td><td class="log-time">'+time+'</td></tr>';
   });
   tbody.innerHTML=html;
 }
@@ -128,4 +135,33 @@ function filterLogs(f){
   document.querySelector('.filter-chip[data-filter="'+f+'"]').classList.add('active');
   renderLogsTable();
 }
+
+// Show user detail modal
+async function showUserDetail(emailEnc){
+  var email=decodeURIComponent(emailEnc);
+  var modal=document.getElementById('user-modal');
+  var content=document.getElementById('user-modal-content');
+  content.innerHTML='<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⏳</div><div>กำลังโหลดข้อมูล...</div></div>';
+  modal.classList.remove('hidden');
+  try{
+    var d=await api('logs/user/'+emailEnc);
+    var stats=d.stats||{};
+    var logs=d.logs||[];
+    var daily=d.daily||[];
+    var name=email.split('@')[0];
+    var initial=name.charAt(0).toUpperCase();
+    var platColors={youtube:'#ff0000',tiktok:'#00d9ff',facebook:'#1877f2',instagram:'#e1306c',monitor:'#22c55e'};
+    var platIcons={youtube:'📺',tiktok:'🎵',facebook:'📘',instagram:'📷',monitor:'🧠'};
+    var html='<div class="modal-header"><div class="modal-user"><div class="modal-avatar">'+initial+'</div><div><div class="modal-name">'+name+'</div><div class="modal-email">'+email+'</div></div></div><button class="modal-close" onclick="closeUserModal()">✕</button></div>';
+    html+='<div class="modal-stats"><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.total_actions||0)+'</div><div class="modal-stat-lbl">กิจกรรมทั้งหมด</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.youtube_count||0)+'</div><div class="modal-stat-lbl">📺 YouTube</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.tiktok_count||0)+'</div><div class="modal-stat-lbl">🎵 TikTok</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.facebook_count||0)+'</div><div class="modal-stat-lbl">📘 Facebook</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.instagram_count||0)+'</div><div class="modal-stat-lbl">📷 Instagram</div></div></div>';
+    if(daily.length){html+='<div class="modal-section"><div class="modal-section-title">📅 กิจกรรมรายวัน (30 วันล่าสุด)</div><div class="daily-chart">';daily.slice(0,14).forEach(function(day){var max=Math.max.apply(null,daily.map(function(x){return x.count;}));var pct=max>0?Math.round((day.count/max)*100):0;var date=new Date(day.date).toLocaleDateString('th-TH',{day:'numeric',month:'short'});html+='<div class="daily-bar-wrap"><div class="daily-bar" style="height:'+pct+'%"></div><div class="daily-val">'+day.count+'</div><div class="daily-date">'+date+'</div></div>';});html+='</div></div>';}
+    html+='<div class="modal-section"><div class="modal-section-title">📜 กิจกรรมล่าสุด</div><div class="modal-logs">';
+    if(!logs.length)html+='<div class="empty" style="padding:20px">ยังไม่มีกิจกรรม</div>';
+    else{logs.slice(0,30).forEach(function(l){var cat=l.category||'system';var icon=platIcons[cat]||'📋';var color=platColors[cat]||'#6b7280';var time=l.created_at?new Date(l.created_at).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';html+='<div class="modal-log-item"><span class="modal-log-icon" style="background:'+color+'20;color:'+color+'">'+icon+'</span><span class="modal-log-action">'+(l.action||'-')+'</span><span class="modal-log-time">'+time+'</span></div>';});}
+    html+='</div></div>';
+    content.innerHTML=html;
+  }catch(e){content.innerHTML='<div style="text-align:center;padding:40px;color:var(--danger)">❌ '+e.message+'</div>';}
+}
+
+function closeUserModal(){document.getElementById('user-modal').classList.add('hidden');}
 </script>`;

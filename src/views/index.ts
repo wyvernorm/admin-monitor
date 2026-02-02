@@ -72,9 +72,9 @@ export function renderIndex(): string {
           <div class="action-card" onclick="goTo('fb-summary')"><div class="action-icon">📘</div><div class="action-label">Facebook</div></div>
           <div class="action-card" onclick="goTo('ig-summary')"><div class="action-icon">📷</div><div class="action-label">Instagram</div></div>
           <div class="action-card" onclick="goTo('monitor')"><div class="action-icon">➕</div><div class="action-label">เพิ่มงาน</div></div>
-          <div class="action-card" onclick="loadOrders();loadDash();toast('รีเฟรช!')"><div class="action-icon">🔄</div><div class="action-label">รีเฟรช</div></div>
+          <div class="action-card" onclick="refreshDashboard()"><div class="action-icon">🔄</div><div class="action-label">รีเฟรช</div></div>
         </div>
-        <div class="section-header"><div class="section-title"><span class="live-dot"></span>งานล่าสุด</div><button class="refresh-btn" onclick="loadOrders()">🔄 รีเฟรช</button></div>
+        <div class="section-header"><div class="section-title"><span class="live-dot"></span>งานล่าสุด</div><button class="refresh-btn" onclick="refreshOrders()">🔄 รีเฟรช</button></div>
         <div id="dash-orders"></div>
       </div>
 
@@ -98,7 +98,7 @@ export function renderIndex(): string {
             <div id="m-status" class="status-box hidden"></div>
           </div>
           <div>
-            <div class="section-header"><div class="section-title"><span class="live-dot"></span>รายการงาน</div><button class="refresh-btn" onclick="loadOrders()">🔄 รีเฟรช</button></div>
+            <div class="section-header"><div class="section-title"><span class="live-dot"></span>รายการงาน</div><button class="refresh-btn" onclick="refreshOrders()">🔄 รีเฟรช</button></div>
             <div id="orders-list"></div>
           </div>
         </div>
@@ -309,7 +309,7 @@ export function renderIndex(): string {
           <div class="card">
             <div class="card-header">
               <h3 style="font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px">🏆 Top Contributors</h3>
-              <button class="btn btn-sm btn-secondary" onclick="loadLogs()">🔄</button>
+              <button class="btn btn-sm btn-secondary" onclick="refreshLogs()">🔄</button>
             </div>
             <div id="leaderboard"></div>
           </div>
@@ -350,6 +350,14 @@ export function renderIndex(): string {
 
     </main>
   </div>
+
+  <!-- User Detail Modal -->
+  <div id="user-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeUserModal()">
+    <div class="modal-box">
+      <div id="user-modal-content"></div>
+    </div>
+  </div>
+
   ${scripts}
 </body>
 </html>`;

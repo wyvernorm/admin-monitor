@@ -172,6 +172,8 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .lb-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--input);border-radius:10px;margin-bottom:8px;transition:all .2s}
 .lb-row:hover{background:rgba(139,92,246,.05)}
 .lb-row:last-child{margin-bottom:0}
+.lb-row.clickable{cursor:pointer}
+.lb-row.clickable:hover{background:rgba(139,92,246,.1);transform:translateX(4px)}
 .lb-medal{font-size:18px;width:28px;text-align:center}
 .lb-user-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--purple),var(--pink));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff}
 .lb-user-info{flex:1;min-width:0}
@@ -201,6 +203,40 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .log-platform{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500;text-transform:capitalize}
 .log-action{font-size:13px;color:var(--text)}
 .log-time{font-size:12px;color:var(--dim);white-space:nowrap}
+.log-user.clickable{cursor:pointer}
+.logs-table tr{cursor:pointer;transition:all .2s}
+.logs-table tr:hover{transform:translateX(2px)}
+
+/* User Detail Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:20px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:24px;border-bottom:1px solid var(--border)}
+.modal-user{display:flex;align-items:center;gap:16px}
+.modal-avatar{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--pink));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff}
+.modal-name{font-size:20px;font-weight:700}
+.modal-email{font-size:13px;color:var(--dim)}
+.modal-close{width:40px;height:40px;border-radius:10px;background:var(--input);border:1px solid var(--border);color:var(--muted);font-size:18px;cursor:pointer;transition:all .2s}
+.modal-close:hover{border-color:var(--danger);color:var(--danger);background:rgba(239,68,68,.1)}
+.modal-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:20px 24px;background:var(--input);border-bottom:1px solid var(--border)}
+.modal-stat{text-align:center}
+.modal-stat-val{font-size:24px;font-weight:800;color:var(--accent)}
+.modal-stat-lbl{font-size:11px;color:var(--dim);margin-top:2px}
+.modal-section{padding:20px 24px;border-bottom:1px solid var(--border)}
+.modal-section:last-child{border-bottom:none}
+.modal-section-title{font-size:14px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.modal-logs{max-height:300px;overflow-y:auto}
+.modal-log-item{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--input);border-radius:8px;margin-bottom:8px}
+.modal-log-item:last-child{margin-bottom:0}
+.modal-log-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.modal-log-action{flex:1;font-size:13px}
+.modal-log-time{font-size:11px;color:var(--dim);white-space:nowrap}
+
+/* Daily Chart */
+.daily-chart{display:flex;align-items:flex-end;gap:8px;height:120px;padding:10px 0}
+.daily-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;height:100%}
+.daily-bar{width:100%;max-width:32px;background:linear-gradient(180deg,var(--purple),var(--pink));border-radius:4px 4px 0 0;min-height:4px;transition:height .3s}
+.daily-val{font-size:10px;font-weight:600;margin-top:6px;color:var(--text)}
+.daily-date{font-size:9px;color:var(--dim);margin-top:2px}
 
 /* Toast */
 .toast{position:fixed;bottom:24px;right:24px;background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:14px 20px;font-size:13px;box-shadow:0 10px 40px rgba(0,0,0,.4);z-index:9999;animation:slideIn .3s ease}
@@ -208,6 +244,6 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 
 /* Responsive */
-@media(max-width:1200px){.stats-row,.logs-stats{grid-template-columns:repeat(2,1fr)}.actions-row{grid-template-columns:repeat(3,1fr)}.monitor-grid{grid-template-columns:1fr}.logs-grid{grid-template-columns:1fr}}
-@media(max-width:768px){.sidebar{display:none}.stats-row,.actions-row,.logs-stats{grid-template-columns:1fr}.metrics{grid-template-columns:1fr}}
+@media(max-width:1200px){.stats-row,.logs-stats{grid-template-columns:repeat(2,1fr)}.actions-row{grid-template-columns:repeat(3,1fr)}.monitor-grid{grid-template-columns:1fr}.logs-grid{grid-template-columns:1fr}.modal-stats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.sidebar{display:none}.stats-row,.actions-row,.logs-stats{grid-template-columns:1fr}.metrics{grid-template-columns:1fr}.modal-stats{grid-template-columns:repeat(2,1fr)}.modal-box{margin:10px;border-radius:16px}}
 `;
