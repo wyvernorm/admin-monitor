@@ -179,6 +179,16 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .loading-text{margin-top:16px;color:var(--muted);font-size:14px}
 .loading-link{margin-top:12px;color:var(--accent);font-size:13px;text-decoration:underline}
 
+/* Calendar Link Card */
+.calendar-link-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:48px;text-align:center;max-width:500px;margin:40px auto}
+.calendar-icon{font-size:72px;margin-bottom:20px}
+.calendar-link-card h3{font-size:24px;font-weight:700;margin-bottom:12px;color:var(--text)}
+.calendar-link-card p{color:var(--muted);margin-bottom:24px;font-size:14px}
+.calendar-features{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:32px}
+.feature-tag{background:var(--input);border:1px solid var(--border);padding:8px 16px;border-radius:20px;font-size:13px;color:var(--dim)}
+.calendar-btn{display:inline-flex;align-items:center;gap:8px;padding:16px 32px;font-size:16px;font-weight:600;background:linear-gradient(135deg,#fb923c,#f97316);color:#000;border-radius:12px;text-decoration:none;transition:all .3s}
+.calendar-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(251,146,60,.3)}
+
 /* Loading Animation - Progress Style */
 .loading-progress{display:flex;flex-direction:column;align-items:center;gap:12px}
 .loading-dots{display:flex;gap:6px}
