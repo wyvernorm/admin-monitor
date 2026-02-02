@@ -51,6 +51,26 @@ function extractFacebookInfo(url: string): { type: string; id: string | null } {
   return { type: 'unknown', id: null };
 }
 
+// Parse view count from string like "1.2M views" or "500K"
+function parseViewCount(views: any): number {
+  if (typeof views === 'number') return views;
+  if (!views) return 0;
+  
+  const str = String(views).toLowerCase().replace(/,/g, '').replace('views', '').trim();
+  
+  if (str.includes('k')) {
+    return Math.round(parseFloat(str) * 1000);
+  }
+  if (str.includes('m')) {
+    return Math.round(parseFloat(str) * 1000000);
+  }
+  if (str.includes('b')) {
+    return Math.round(parseFloat(str) * 1000000000);
+  }
+  
+  return parseInt(str) || 0;
+}
+
 // ============= GET FACEBOOK STATS =============
 facebookRoutes.post('/stats', async (c) => {
   try {
@@ -87,6 +107,155 @@ facebookRoutes.post('/stats', async (c) => {
     return c.json({ error: error.message }, 500);
   }
 });
+
+// ============= GET VIDEO/REEL STATS (NEW) =============
+facebookRoutes.post('/video-stats', async (c) => {
+  const { url } = await c.req.json();
+  
+  if (!url) {
+    return c.json({ error: 'URL is required' }, 400);
+  }
+
+  // ตรวจสอบว่าเป็น Facebook video URL หรือไม่
+  const isFBVideo = url.includes('facebook.com') || url.includes('fb.watch');
+  if (!isFBVideo) {
+    return c.json({ error: 'Invalid Facebook video URL' }, 400);
+  }
+
+  try {
+    const token = c.env.APIFY2_TOKEN;
+    const cache = c.env.ADMIN_MONITOR_CACHE;
+    
+    // Check cache first
+    const cacheKey = `fb_video_${btoa(url).substring(0, 50)}`;
+    const cached = await cache?.get(cacheKey);
+    if (cached) {
+      return c.json({ ...JSON.parse(cached), fromCache: true });
+    }
+
+    // ใช้ Apify Facebook Videos Watch Scraper
+    const ACTOR_ID = 'lexis-solutions~facebook-videos-watch-scraper';
+    
+    const runRes = await fetch(
+      `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${token}&waitForFinish=120`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          urls: [url],
+          maxItems: 1
+        })
+      }
+    );
+
+    const runJson = await runRes.json() as any;
+    const datasetId = runJson?.data?.defaultDatasetId;
+
+    if (datasetId) {
+      // Wait a bit for data
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const dataRes = await fetch(
+        `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token}`
+      );
+
+      const items = await dataRes.json() as any[];
+      
+      if (items && items.length > 0) {
+        const video = items[0];
+        
+        const result = {
+          title: video.title || video.description?.substring(0, 100) || 'Facebook Video',
+          author: video.ownerName || video.pageTitle || video.pageName || '',
+          views: parseViewCount(video.views || video.viewCount || video.video_view_count || video.playCount || 0),
+          likes: Number(video.likes || video.reactions || video.likesCount || 0),
+          comments: Number(video.comments || video.commentCount || video.commentsCount || 0),
+          shares: Number(video.shares || video.shareCount || video.sharesCount || 0),
+          duration: video.duration || video.videoDuration || '',
+          thumbnail: video.thumbnail || video.thumbnailUrl || video.photoUrl || '',
+          publishedAt: video.publishedAt || video.date || video.time || '',
+          url: video.url || url
+        };
+
+        // Cache for 5 minutes
+        await cache?.put(cacheKey, JSON.stringify(result), { expirationTtl: 300 });
+
+        return c.json(result);
+      }
+    }
+
+    // Fallback: ใช้ Facebook Posts Scraper
+    const fallbackResult = await getFBVideoFallback(url, token, cache);
+    if (fallbackResult) {
+      return c.json(fallbackResult);
+    }
+
+    return c.json({ error: 'Video not found or private. Please check the URL.' }, 404);
+
+  } catch (error: any) {
+    console.error('FB Video Stats Error:', error);
+    return c.json({ error: error.message || 'Failed to fetch video stats' }, 500);
+  }
+});
+
+// Fallback function - ใช้ posts scraper
+async function getFBVideoFallback(url: string, token: string, cache: KVNamespace | undefined) {
+  try {
+    const ACTOR_ID = 'apify~facebook-posts-scraper';
+    
+    const runRes = await fetch(
+      `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${token}&waitForFinish=180`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startUrls: [{ url }],
+          maxPosts: 1,
+          scrapePostComments: false,
+          scrapePostDetails: true
+        })
+      }
+    );
+
+    const runJson = await runRes.json() as any;
+    const datasetId = runJson?.data?.defaultDatasetId;
+
+    if (!datasetId) return null;
+
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    const dataRes = await fetch(
+      `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token}`
+    );
+
+    const items = await dataRes.json() as any[];
+    if (!items || items.length === 0) return null;
+
+    const post = items[0];
+    
+    const result = {
+      title: post.text?.substring(0, 100) || 'Facebook Video',
+      author: post.pageName || post.userName || post.ownerName || '',
+      views: parseViewCount(post.videoViewCount || post.viewsCount || post.views || post.playCount || 0),
+      likes: Number(post.likes || post.likesCount || post.reactionsCount || 0),
+      comments: Number(post.comments || post.commentsCount || 0),
+      shares: Number(post.shares || post.sharesCount || 0),
+      duration: '',
+      thumbnail: post.photoUrl || post.thumbnailUrl || '',
+      publishedAt: post.time || post.date || '',
+      url: url
+    };
+
+    // Cache
+    const cacheKey = `fb_video_${btoa(url).substring(0, 50)}`;
+    await cache?.put(cacheKey, JSON.stringify(result), { expirationTtl: 300 });
+
+    return result;
+  } catch (e) {
+    console.error('FB Video Fallback Error:', e);
+    return null;
+  }
+}
 
 // ============= GET PAGE STATS =============
 async function getFacebookPageStats(url: string, token: string, cache: KVNamespace | undefined, c: any) {

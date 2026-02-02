@@ -157,6 +157,19 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .icon-btn{width:36px;height:36px;border-radius:8px;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:all .2s}
 .icon-btn:hover{border-color:var(--accent);background:rgba(34,197,94,.1)}
 
+/* Video Result Card */
+.video-result-card{background:var(--input);border:1px solid var(--border);border-radius:16px;margin-top:16px;overflow:hidden;display:flex;flex-direction:column}
+.video-thumb{width:100%;height:200px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:48px;background-size:cover;background-position:center}
+.video-info{padding:20px}
+.video-title{font-size:16px;font-weight:600;margin-bottom:8px;line-height:1.4}
+.video-meta{font-size:12px;color:var(--dim);margin-bottom:16px}
+.video-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.video-stat{background:var(--card);border-radius:12px;padding:16px;text-align:center}
+.video-stat-icon{display:block;font-size:24px;margin-bottom:8px}
+.video-stat-val{display:block;font-size:20px;font-weight:700;color:var(--accent)}
+.video-stat-lbl{display:block;font-size:11px;color:var(--dim);margin-top:4px}
+@media(max-width:768px){.video-stats-grid{grid-template-columns:repeat(2,1fr)}.video-stat{padding:12px}.video-stat-val{font-size:16px}}
+
 /* Activity Logs - New Design */
 .logs-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
 .logs-stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;display:flex;align-items:center;gap:16px;transition:all .2s}
