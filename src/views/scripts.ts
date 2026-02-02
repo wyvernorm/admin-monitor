@@ -215,28 +215,26 @@ async function loadOrders(){
 function filterOrders(){
   var searchEl=document.getElementById('order-search');
   var filterEl=document.getElementById('order-filter');
-  var platformEl=document.getElementById('order-platform');
   var search=searchEl?searchEl.value.toLowerCase():'';
   var status=filterEl?filterEl.value:'all';
-  var platform=platformEl?platformEl.value:'all';
   
   var filtered=allOrders.filter(function(o){
     // Search filter
     var matchSearch=!search||(o.url&&o.url.toLowerCase().indexOf(search)>-1)||(o.line_id&&o.line_id.toLowerCase().indexOf(search)>-1);
     
-    // Status filter
+    // Status filter - แก้เงื่อนไขใหม่
     var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;
-    var isDone=(vt>0&&vc>=vt)||(lt>0&&lc>=lt);
+    // เสร็จ = ต้องครบทุกเป้าหมายที่ตั้งไว้
+    var viewDone=vt===0||vc>=vt;
+    var likeDone=lt===0||lc>=lt;
+    var isDone=viewDone&&likeDone&&(vt>0||lt>0);
+    // กำลังทำ = มี progress แต่ยังไม่ครบ
     var isRunning=!isDone&&((vt>0&&vc>0)||(lt>0&&lc>0));
+    // รอ = ยังไม่มี progress เลย
     var isPending=!isDone&&!isRunning;
     var matchStatus=status==='all'||(status==='done'&&isDone)||(status==='running'&&isRunning)||(status==='pending'&&isPending);
     
-    // Platform filter
-    var plat='youtube';
-    if(o.url){if(o.url.indexOf('tiktok')>-1)plat='tiktok';else if(o.url.indexOf('facebook')>-1||o.url.indexOf('fb.watch')>-1)plat='facebook';else if(o.url.indexOf('instagram')>-1)plat='instagram';}
-    var matchPlatform=platform==='all'||platform===plat;
-    
-    return matchSearch&&matchStatus&&matchPlatform;
+    return matchSearch&&matchStatus;
   });
   
   var countEl=document.getElementById('order-count');
@@ -244,7 +242,16 @@ function filterOrders(){
   renderOrders(filtered,'orders-list');
 }
 
-function getOrderStatus(o){var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;if((vt>0&&vc>=vt)||(lt>0&&lc>=lt))return'done';if((vt>0&&vc>0)||(lt>0&&lc>0))return'running';return'pending';}
+function getOrderStatus(o){
+  var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;
+  var viewDone=vt===0||vc>=vt;
+  var likeDone=lt===0||lc>=lt;
+  // เสร็จ = ครบทุกเป้าหมาย
+  if(viewDone&&likeDone&&(vt>0||lt>0))return'done';
+  // กำลังทำ = มี progress
+  if((vt>0&&vc>0)||(lt>0&&lc>0))return'running';
+  return'pending';
+}
 function getPlatform(url){if(!url)return'youtube';if(url.indexOf('tiktok')>-1)return'tiktok';if(url.indexOf('facebook')>-1||url.indexOf('fb.watch')>-1)return'facebook';if(url.indexOf('instagram')>-1)return'instagram';return'youtube';}
 function getPlatformIcon(p){return p==='youtube'?'📺':p==='tiktok'?'🎵':p==='facebook'?'📘':p==='instagram'?'📷':'🌐';}
 function getStatusBadge(s){return s==='done'?'<span class="status-badge done">✅ เสร็จ</span>':s==='running'?'<span class="status-badge running">⏳ กำลังทำ</span>':'<span class="status-badge pending">⏸️ รอ</span>';}
