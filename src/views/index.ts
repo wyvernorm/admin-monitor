@@ -94,7 +94,7 @@ export function renderIndex(): string {
               <div class="inp-grp"><span class="inp-icon">👀</span><input class="inp" id="m-view" type="number" placeholder="100" /></div>
               <div class="inp-grp"><span class="inp-icon">👍</span><input class="inp" id="m-like" type="number" placeholder="เป้าไลค์" disabled /></div>
             </div>
-            <button class="submit-btn" onclick="addMonitor()">🚀 เพิ่มงาน</button>
+            <button class="submit-btn" onclick="handleAddMonitor()">🚀 เพิ่มงาน</button>
             <div id="m-status" class="status-box hidden"></div>
           </div>
           <div>
@@ -109,7 +109,7 @@ export function renderIndex(): string {
         <div class="hero"><div class="hero-title">📊 ดูสถิติ YouTube</div><div class="hero-sub">ดึงข้อมูล views, likes จากวิดีโอหรือช่อง</div></div>
         <div class="card">
           <div class="form-group"><label class="form-label">YouTube URL</label><input id="yt-s-url" placeholder="URL วิดีโอ/ช่อง" /></div>
-          <button class="btn" onclick="getYTStats()">🔍 ดึงข้อมูล</button>
+          <button class="btn" onclick="handleGetYTStats()">🔍 ดึงข้อมูล</button>
           <div id="yt-s-result" class="status-box hidden"></div>
         </div>
       </div>
@@ -124,7 +124,7 @@ export function renderIndex(): string {
             <div class="form-group"><label class="form-label">แพ็คเกจ</label><select id="yt-pkg"></select></div>
           </div>
           <div class="form-row">
-            <button class="btn" onclick="genYT()">🧾 สรุปงาน</button>
+            <button class="btn" onclick="handleGenYT()">🧾 สรุปงาน</button>
             <button class="btn btn-secondary" id="yt-add-btn" onclick="addYTToMonitor()" style="display:none">➕ เพิ่มไป Monitor</button>
           </div>
           <div id="yt-card" class="summary-card hidden"><div class="summary-actions"><button class="icon-btn" onclick="copy('yt-text')">📋</button></div><div id="yt-content" class="summary-content"></div></div>
@@ -141,7 +141,7 @@ export function renderIndex(): string {
             <div class="form-group"><label class="form-label">ประเภท</label><select id="tt-type"><option value="view">วิว</option><option value="like">ไลค์</option><option value="save">เซฟ</option><option value="share">แชร์</option></select></div>
             <div class="form-group"><label class="form-label">จำนวน</label><input id="tt-amt" type="number" placeholder="1000" /></div>
           </div>
-          <button class="btn" onclick="genTT()">🧾 สรุปงาน</button>
+          <button class="btn" onclick="handleGenTT()">🧾 สรุปงาน</button>
           <div id="tt-card" class="summary-card hidden"><div class="summary-actions"><button class="icon-btn" onclick="copy('tt-text')">📋</button></div><div id="tt-content" class="summary-content"></div></div>
           <textarea id="tt-text" class="hidden"></textarea>
         </div>
@@ -160,7 +160,7 @@ export function renderIndex(): string {
             <div class="form-group"><label class="form-label"><input type="checkbox" id="tta-sv"> 💾 Save</label><input id="tta-sva" type="number" placeholder="200" class="mt-2" /></div>
             <div class="form-group"><label class="form-label"><input type="checkbox" id="tta-sh"> 🔗 Share</label><input id="tta-sha" type="number" placeholder="300" class="mt-2" /></div>
           </div>
-          <button class="btn" onclick="genTTAll()">🎁 สรุปงาน</button>
+          <button class="btn" onclick="handleGenTTAll()">🎁 สรุปงาน</button>
           <div id="tta-card" class="summary-card hidden"><div class="summary-actions"><button class="icon-btn" onclick="copy('tta-text')">📋</button></div><div id="tta-content" class="summary-content"></div></div>
           <textarea id="tta-text" class="hidden"></textarea>
         </div>
@@ -175,7 +175,7 @@ export function renderIndex(): string {
             <div class="form-group"><label class="form-label">ชนิด</label><select id="ttf-type"><option value="normal">#1</option><option value="hq">#HQ</option><option value="th">#TH</option></select></div>
             <div class="form-group"><label class="form-label">จำนวน</label><input id="ttf-amt" type="number" placeholder="1000" /></div>
           </div>
-          <button class="btn" onclick="genTTF()">🧾 สรุปงาน</button>
+          <button class="btn" onclick="handleGenTTF()">🧾 สรุปงาน</button>
           <div id="ttf-card" class="summary-card hidden"><div class="summary-actions"><button class="icon-btn" onclick="copy('ttf-text')">📋</button></div><div id="ttf-content" class="summary-content"></div></div>
           <textarea id="ttf-text" class="hidden"></textarea>
         </div>
@@ -186,7 +186,7 @@ export function renderIndex(): string {
         <div class="hero"><div class="hero-title">📘 ดูสถิติ Facebook</div><div class="hero-sub">ดึงข้อมูลจากโพสต์หรือเพจ</div></div>
         <div class="card">
           <div class="form-group"><label class="form-label">Facebook URL</label><input id="fb-s-url" placeholder="URL โพสต์/เพจ" /></div>
-          <button class="btn" onclick="getFBStats()">🔍 ดึงข้อมูล</button>
+          <button class="btn" onclick="handleGetFBStats()">🔍 ดึงข้อมูล</button>
           <div id="fb-s-result" class="status-box hidden"></div>
         </div>
       </div>
@@ -201,7 +201,7 @@ export function renderIndex(): string {
             <div class="form-group"><label class="form-label">จำนวน</label><input id="fb-amt" type="number" placeholder="1000" /></div>
           </div>
           <div class="form-group"><label class="form-label">เริ่มต้น (ไม่จำเป็น)</label><input id="fb-start" type="number" placeholder="ดึงอัตโนมัติ" /></div>
-          <button class="btn" onclick="genFB()">🧾 สรุปงาน</button>
+          <button class="btn" onclick="handleGenFB()">🧾 สรุปงาน</button>
           <div id="fb-card" class="summary-card hidden"><div class="summary-actions"><button class="icon-btn" onclick="copy('fb-text')">📋</button></div><div id="fb-content" class="summary-content"></div></div>
           <textarea id="fb-text" class="hidden"></textarea>
         </div>
@@ -214,7 +214,7 @@ export function renderIndex(): string {
           <div class="form-group"><label class="form-label">Facebook URL</label><input id="fbb-url" placeholder="URL โพสต์" /></div>
           <div id="fbb-items"></div>
           <button class="btn btn-secondary" onclick="addFBItem()" style="margin-bottom:16px">➕ เพิ่มรายการ</button>
-          <button class="btn" onclick="genFBBatch()">🧾 สรุปงาน</button>
+          <button class="btn" onclick="handleGenFBBatch()">🧾 สรุปงาน</button>
           <div id="fbb-card" class="summary-card hidden"><div class="summary-actions"><button class="icon-btn" onclick="copy('fbb-text')">📋</button></div><div id="fbb-content" class="summary-content"></div></div>
           <textarea id="fbb-text" class="hidden"></textarea>
         </div>
@@ -225,7 +225,7 @@ export function renderIndex(): string {
         <div class="hero"><div class="hero-title">📷 ดูสถิติ Instagram</div><div class="hero-sub">ดึงข้อมูลจากโพสต์หรือโปรไฟล์</div></div>
         <div class="card">
           <div class="form-group"><label class="form-label">Instagram URL</label><input id="ig-s-url" placeholder="URL โพสต์/โปรไฟล์/Reel" /></div>
-          <button class="btn" onclick="getIGStats()">🔍 ดึงข้อมูล</button>
+          <button class="btn" onclick="handleGetIGStats()">🔍 ดึงข้อมูล</button>
           <div id="ig-s-result" class="status-box hidden"></div>
         </div>
       </div>
@@ -239,7 +239,7 @@ export function renderIndex(): string {
             <div class="form-group"><label class="form-label">รูปแบบ</label><select id="ig-type"><option value="like">Like</option><option value="follower">Follower</option><option value="view">View</option></select></div>
             <div class="form-group"><label class="form-label">จำนวน</label><input id="ig-amt" type="number" placeholder="1000" /></div>
           </div>
-          <button class="btn" onclick="genIG()">🧾 สรุปงาน</button>
+          <button class="btn" onclick="handleGenIG()">🧾 สรุปงาน</button>
           <div id="ig-card" class="summary-card hidden"><div class="summary-actions"><button class="icon-btn" onclick="copy('ig-text')">📋</button></div><div id="ig-content" class="summary-content"></div></div>
           <textarea id="ig-text" class="hidden"></textarea>
         </div>
@@ -253,34 +253,98 @@ export function renderIndex(): string {
           <p style="font-size:11px;color:var(--dim);margin-bottom:16px">💡 /reel/ จะแปลงเป็น /p/ | เลือกได้สูงสุด 2 รายการ</p>
           <div id="igb-items"></div>
           <button class="btn btn-secondary" onclick="addIGItem()" style="margin-bottom:16px">➕ เพิ่มรายการ</button>
-          <button class="btn" onclick="genIGBatch()">🧾 สรุปงาน</button>
+          <button class="btn" onclick="handleGenIGBatch()">🧾 สรุปงาน</button>
           <div id="igb-card" class="summary-card hidden"><div class="summary-actions"><button class="icon-btn" onclick="copy('igb-text')">📋</button></div><div id="igb-content" class="summary-content"></div></div>
           <textarea id="igb-text" class="hidden"></textarea>
         </div>
       </div>
 
-      <!-- Activity Logs -->
+      <!-- Activity Logs - Redesigned -->
       <div id="page-logs" class="page">
-        <!-- Overview Section -->
-        <div id="logs-overview">
-          <div class="hero" style="background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(236,72,153,.05))"><div class="hero-title">📜 Activity Logs</div><div class="hero-sub">ดูประวัติการใช้งานของทีม - คลิกที่ผู้ใช้เพื่อดูรายละเอียด</div></div>
-          <div class="stats-row" style="grid-template-columns:repeat(4,1fr)">
-            <div class="stat-card"><div class="stat-icon c1">📊</div><div class="stat-val" id="logs-val" style="color:var(--accent)">0</div><div class="stat-lbl">กิจกรรมทั้งหมด</div></div>
-            <div class="stat-card"><div class="stat-icon c2">👥</div><div class="stat-val" id="log-users" style="color:var(--blue)">0</div><div class="stat-lbl">ผู้ใช้งาน</div></div>
-            <div class="stat-card"><div class="stat-icon c3">📅</div><div class="stat-val" id="log-today" style="color:var(--purple)">0</div><div class="stat-lbl">วันนี้</div></div>
-            <div class="stat-card"><div class="stat-icon c4">🧾</div><div class="stat-val" id="log-summary" style="color:var(--pink)">0</div><div class="stat-lbl">สรุปงาน</div></div>
+        <div class="hero" style="background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(236,72,153,.08))">
+          <div class="hero-title">📜 Activity Logs</div>
+          <div class="hero-sub">ดูประวัติการใช้งานของทีม - คลิกที่ผู้ใช้เพื่อดูรายละเอียด</div>
+        </div>
+        
+        <!-- Stats Cards -->
+        <div class="logs-stats">
+          <div class="logs-stat-card">
+            <div class="logs-stat-icon" style="background:linear-gradient(135deg,rgba(34,197,94,.2),rgba(34,197,94,.05))">📊</div>
+            <div class="logs-stat-info">
+              <div class="logs-stat-value" id="logs-total">0</div>
+              <div class="logs-stat-label">กิจกรรมทั้งหมด</div>
+            </div>
           </div>
-          <div class="card"><div class="card-header"><h3 style="font-size:16px">📊 สถิติตาม Platform</h3></div><div id="platform-chart"></div></div>
-          <div class="card">
-            <div class="card-header"><h3 style="font-size:16px">👥 ผู้ใช้งานทั้งหมด</h3><button class="btn btn-sm btn-secondary" onclick="loadLogs()">🔄 รีเฟรช</button></div>
-            <div id="user-stats"></div>
+          <div class="logs-stat-card">
+            <div class="logs-stat-icon" style="background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(59,130,246,.05))">👥</div>
+            <div class="logs-stat-info">
+              <div class="logs-stat-value" id="logs-users">0</div>
+              <div class="logs-stat-label">ผู้ใช้งาน</div>
+            </div>
+          </div>
+          <div class="logs-stat-card">
+            <div class="logs-stat-icon" style="background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(139,92,246,.05))">📅</div>
+            <div class="logs-stat-info">
+              <div class="logs-stat-value" id="logs-today">0</div>
+              <div class="logs-stat-label">วันนี้</div>
+            </div>
+          </div>
+          <div class="logs-stat-card">
+            <div class="logs-stat-icon" style="background:linear-gradient(135deg,rgba(236,72,153,.2),rgba(236,72,153,.05))">🔥</div>
+            <div class="logs-stat-info">
+              <div class="logs-stat-value" id="logs-week">0</div>
+              <div class="logs-stat-label">สัปดาห์นี้</div>
+            </div>
           </div>
         </div>
 
-        <!-- User Detail Section (Hidden by default) -->
-        <div id="logs-user-detail" class="hidden">
-          <div class="back-header" onclick="showLogsOverview()"><span style="cursor:pointer;display:flex;align-items:center;gap:8px">← กลับ</span></div>
-          <div id="user-detail-content"></div>
+        <!-- Platform Stats & Leaderboard -->
+        <div class="logs-grid">
+          <div class="card">
+            <div class="card-header">
+              <h3 style="font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px">📊 สถิติตาม Platform</h3>
+            </div>
+            <div id="platform-stats"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3 style="font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px">🏆 Top Contributors</h3>
+              <button class="btn btn-sm btn-secondary" onclick="loadLogs()">🔄</button>
+            </div>
+            <div id="leaderboard"></div>
+          </div>
+        </div>
+
+        <!-- Activity Table -->
+        <div class="card">
+          <div class="card-header">
+            <h3 style="font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px">📜 กิจกรรมล่าสุด</h3>
+            <div class="logs-filters">
+              <button class="filter-chip active" data-filter="all" onclick="filterLogs('all')">ทั้งหมด</button>
+              <button class="filter-chip" data-filter="youtube" onclick="filterLogs('youtube')">📺 YouTube</button>
+              <button class="filter-chip" data-filter="tiktok" onclick="filterLogs('tiktok')">🎵 TikTok</button>
+              <button class="filter-chip" data-filter="facebook" onclick="filterLogs('facebook')">📘 Facebook</button>
+              <button class="filter-chip" data-filter="instagram" onclick="filterLogs('instagram')">📷 Instagram</button>
+            </div>
+          </div>
+          <div class="logs-table-wrap">
+            <table class="logs-table">
+              <thead>
+                <tr>
+                  <th style="width:180px">ผู้ใช้</th>
+                  <th style="width:100px">Platform</th>
+                  <th>กิจกรรม</th>
+                  <th style="width:140px">เวลา</th>
+                </tr>
+              </thead>
+              <tbody id="logs-tbody"></tbody>
+            </table>
+          </div>
+          <div id="logs-empty" class="empty hidden">
+            <div class="empty-icon">📜</div>
+            <div class="empty-title">ยังไม่มีกิจกรรม</div>
+            <div class="empty-desc">เริ่มใช้งานเพื่อบันทึกกิจกรรม</div>
+          </div>
         </div>
       </div>
 

@@ -2,178 +2,154 @@ import { Hono } from 'hono';
 
 type Bindings = {
   DB: D1Database;
+  SESSION_SECRET: string;
 };
 
-export const logsRoutes = new Hono<{ Bindings: Bindings }>();
+type Variables = {
+  user?: { email: string; name: string; picture?: string };
+};
 
-// ============= บันทึก Log =============
-logsRoutes.post('/', async (c) => {
-  try {
-    const body = await c.req.json();
-    const { action, platform, details } = body;
-    
-    // Get user from header
-    const sessionToken = c.req.header('X-Session-Token');
-    let userEmail = 'anonymous';
-    let userName = 'Anonymous';
-    let userPicture = '';
-    
-    if (sessionToken) {
-      try {
-        const binaryString = atob(sessionToken);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const session = JSON.parse(new TextDecoder().decode(bytes));
-        userEmail = session.email || 'anonymous';
-        userName = session.name || 'Anonymous';
-        userPicture = session.picture || '';
-      } catch (e) {}
-    }
-    
-    // Determine action type
-    let actionType = 'other';
-    if (action.includes('ดูสถิติ')) actionType = 'stats';
-    else if (action.includes('สรุปงาน')) actionType = 'summary';
-    else if (action.includes('เพิ่มงาน') || action.includes('Monitor')) actionType = 'monitor_add';
-    else if (action.includes('ลบ')) actionType = 'delete';
-    
-    await c.env.DB.prepare(`
-      INSERT INTO activity_logs (admin_email, admin_name, admin_picture, action, action_type, category, details, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-    `).bind(userEmail, userName, userPicture, action, actionType, platform || 'other', details || '').run();
-    
-    return c.json({ success: true });
-  } catch (error: any) {
-    console.error('Log error:', error);
-    return c.json({ error: error.message }, 500);
+const logs = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+// Get all logs with stats
+logs.get('/', async (c) => {
+  const user = c.get('user');
+  if (!user) {
+    return c.json({ error: 'Unauthorized' }, 401);
   }
-});
 
-// ============= ดึง Logs ทั้งหมด (Overview) =============
-logsRoutes.get('/', async (c) => {
   try {
-    // Get all logs (latest 500)
+    // Get recent logs (last 100)
     const logsResult = await c.env.DB.prepare(`
-      SELECT * FROM activity_logs 
-      ORDER BY created_at DESC 
-      LIMIT 500
+      SELECT id, admin_email, admin_name, action, category, details, created_at
+      FROM activity_logs
+      ORDER BY created_at DESC
+      LIMIT 100
     `).all();
-    
-    // Get user stats (aggregate by user)
-    const userStatsResult = await c.env.DB.prepare(`
+
+    // Get stats per user
+    const statsResult = await c.env.DB.prepare(`
       SELECT 
         admin_email,
         admin_name,
-        admin_picture,
         COUNT(*) as total_actions,
-        SUM(CASE WHEN category = 'youtube' THEN 1 ELSE 0 END) as youtube_count,
-        SUM(CASE WHEN category = 'tiktok' THEN 1 ELSE 0 END) as tiktok_count,
-        SUM(CASE WHEN category = 'facebook' THEN 1 ELSE 0 END) as facebook_count,
-        SUM(CASE WHEN category = 'instagram' THEN 1 ELSE 0 END) as instagram_count,
-        SUM(CASE WHEN action_type = 'stats' THEN 1 ELSE 0 END) as stats_count,
-        SUM(CASE WHEN action_type = 'summary' THEN 1 ELSE 0 END) as summary_count,
-        SUM(CASE WHEN action_type = 'monitor_add' THEN 1 ELSE 0 END) as monitor_add_count,
-        SUM(CASE WHEN action_type = 'delete' THEN 1 ELSE 0 END) as delete_count,
         MAX(created_at) as last_active
-      FROM activity_logs 
+      FROM activity_logs
       GROUP BY admin_email
       ORDER BY total_actions DESC
     `).all();
-    
+
     // Get today's count
     const todayResult = await c.env.DB.prepare(`
-      SELECT COUNT(*) as count FROM activity_logs 
-      WHERE date(created_at) = date('now')
+      SELECT COUNT(*) as count
+      FROM activity_logs
+      WHERE DATE(created_at) = DATE('now')
     `).first();
-    
-    // Get total count
-    const totalResult = await c.env.DB.prepare(`
-      SELECT COUNT(*) as count FROM activity_logs
-    `).first();
-    
-    // Platform totals
+
+    // Get platform stats
     const platformResult = await c.env.DB.prepare(`
-      SELECT 
-        category,
-        COUNT(*) as count
-      FROM activity_logs 
+      SELECT category, COUNT(*) as count
+      FROM activity_logs
       GROUP BY category
     `).all();
-    
-    const platforms: Record<string, number> = {};
-    (platformResult.results || []).forEach((p: any) => {
-      platforms[p.category] = p.count;
-    });
-    
+
     return c.json({
       logs: logsResult.results || [],
-      userStats: userStatsResult.results || [],
-      today: (todayResult as any)?.count || 0,
-      total: (totalResult as any)?.count || 0,
-      userCount: (userStatsResult.results || []).length,
-      platforms
+      stats: statsResult.results || [],
+      todayCount: todayResult?.count || 0,
+      platformStats: platformResult.results || []
     });
-  } catch (error: any) {
-    console.error('Get logs error:', error);
-    return c.json({ error: error.message }, 500);
+  } catch (e: any) {
+    console.error('Logs fetch error:', e);
+    return c.json({ error: e.message, logs: [], stats: [] });
   }
 });
 
-// ============= ดึง Logs ของผู้ใช้คนเดียว =============
-logsRoutes.get('/user/:email', async (c) => {
+// Add new log entry
+logs.post('/', async (c) => {
+  const user = c.get('user');
+  if (!user) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
   try {
-    const email = decodeURIComponent(c.req.param('email'));
-    
-    // Get user info and stats
-    const userStatsResult = await c.env.DB.prepare(`
-      SELECT 
-        admin_email,
-        admin_name,
-        admin_picture,
-        COUNT(*) as total_actions,
-        SUM(CASE WHEN category = 'youtube' THEN 1 ELSE 0 END) as youtube_count,
-        SUM(CASE WHEN category = 'tiktok' THEN 1 ELSE 0 END) as tiktok_count,
-        SUM(CASE WHEN category = 'facebook' THEN 1 ELSE 0 END) as facebook_count,
-        SUM(CASE WHEN category = 'instagram' THEN 1 ELSE 0 END) as instagram_count,
-        SUM(CASE WHEN action_type = 'stats' THEN 1 ELSE 0 END) as stats_count,
-        SUM(CASE WHEN action_type = 'summary' THEN 1 ELSE 0 END) as summary_count,
-        SUM(CASE WHEN action_type = 'monitor_add' THEN 1 ELSE 0 END) as monitor_add_count,
-        SUM(CASE WHEN action_type = 'delete' THEN 1 ELSE 0 END) as delete_count,
-        MIN(created_at) as first_active,
-        MAX(created_at) as last_active
-      FROM activity_logs 
-      WHERE admin_email = ?
-      GROUP BY admin_email
-    `).bind(email).first();
-    
-    // Get user's recent logs
-    const logsResult = await c.env.DB.prepare(`
-      SELECT * FROM activity_logs 
-      WHERE admin_email = ?
-      ORDER BY created_at DESC 
-      LIMIT 100
-    `).bind(email).all();
-    
-    // Get daily activity (last 7 days)
-    const dailyResult = await c.env.DB.prepare(`
-      SELECT 
-        date(created_at) as date,
-        COUNT(*) as count
-      FROM activity_logs 
-      WHERE admin_email = ? AND created_at >= datetime('now', '-7 days')
-      GROUP BY date(created_at)
-      ORDER BY date DESC
-    `).bind(email).all();
-    
-    return c.json({
-      user: userStatsResult || null,
-      logs: logsResult.results || [],
-      dailyActivity: dailyResult.results || []
-    });
-  } catch (error: any) {
-    console.error('Get user logs error:', error);
-    return c.json({ error: error.message }, 500);
+    const body = await c.req.json();
+    const { action, category, details } = body;
+
+    if (!action || !category) {
+      return c.json({ error: 'Missing action or category' }, 400);
+    }
+
+    // Get IP and User Agent
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+    const userAgent = c.req.header('User-Agent') || 'unknown';
+
+    await c.env.DB.prepare(`
+      INSERT INTO activity_logs (admin_email, admin_name, action, category, details, ip_address, user_agent)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      user.email,
+      user.name || user.email.split('@')[0],
+      action,
+      category,
+      details ? JSON.stringify(details) : null,
+      ip,
+      userAgent
+    ).run();
+
+    return c.json({ success: true });
+  } catch (e: any) {
+    console.error('Log create error:', e);
+    return c.json({ error: e.message }, 500);
   }
 });
+
+// Get logs by user
+logs.get('/user/:email', async (c) => {
+  const user = c.get('user');
+  if (!user) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  const email = c.req.param('email');
+
+  try {
+    const result = await c.env.DB.prepare(`
+      SELECT id, admin_email, admin_name, action, category, details, created_at
+      FROM activity_logs
+      WHERE admin_email = ?
+      ORDER BY created_at DESC
+      LIMIT 50
+    `).bind(email).all();
+
+    return c.json({ logs: result.results || [] });
+  } catch (e: any) {
+    return c.json({ error: e.message, logs: [] });
+  }
+});
+
+// Get logs by category
+logs.get('/category/:category', async (c) => {
+  const user = c.get('user');
+  if (!user) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  const category = c.req.param('category');
+
+  try {
+    const result = await c.env.DB.prepare(`
+      SELECT id, admin_email, admin_name, action, category, details, created_at
+      FROM activity_logs
+      WHERE category = ?
+      ORDER BY created_at DESC
+      LIMIT 50
+    `).bind(category).all();
+
+    return c.json({ logs: result.results || [] });
+  } catch (e: any) {
+    return c.json({ error: e.message, logs: [] });
+  }
+});
+
+export default logs;

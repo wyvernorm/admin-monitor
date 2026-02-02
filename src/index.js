@@ -6,6 +6,7 @@ import { youtubeRoutes } from './routes/youtube';
 import { monitorRoutes } from './routes/monitor';
 import { logRoutes } from './routes/logs';
 import { renderPage } from './views/pages';
+import logs from './routes/logs';
 
 const app = new Hono();
 
@@ -41,6 +42,7 @@ app.use('/pages/*', authMiddleware);
 app.route('/api/youtube', youtubeRoutes);
 app.route('/api/monitor', monitorRoutes);
 app.route('/api/logs', logRoutes);
+app.route('/api/logs', logs);
 
 // ==================== PAGE ROUTES ====================
 // Homepage (redirect to monitor if logged in)
