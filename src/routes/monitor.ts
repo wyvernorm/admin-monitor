@@ -62,18 +62,6 @@ async function sendTelegram(token: string, groupId: string, text: string, youtub
   });
 }
 
-// ============= HELPER: Log Action =============
-async function logAction(db: D1Database, email: string, action: string, category: string, details?: string) {
-  try {
-    await db.prepare(`
-      INSERT INTO logs (admin_email, action, category, details, created_at)
-      VALUES (?, ?, ?, ?, datetime('now'))
-    `).bind(email, action, category, details || '').run();
-  } catch (e) {
-    console.error('Failed to log action:', e);
-  }
-}
-
 // ============= GET ALL RUNNING ORDERS =============
 monitorRoutes.get('/orders', async (c) => {
   try {
@@ -95,7 +83,8 @@ monitorRoutes.get('/orders', async (c) => {
 monitorRoutes.post('/orders', async (c) => {
   try {
     const { url, viewTarget, likeTarget, lineId } = await c.req.json();
-    const userEmail = c.get('userEmail') || 'unknown';
+    const user = c.get('user');
+    const userEmail = user?.email || 'unknown';
 
     if (!url) {
       return c.json({ error: 'URL is required' }, 400);
@@ -124,19 +113,17 @@ monitorRoutes.post('/orders', async (c) => {
 
     // Insert to database
     await db.prepare(`
-      INSERT INTO orders (url, view_target, view_current, like_target, like_current, status, line_id, notified, created_at)
-      VALUES (?, ?, ?, ?, ?, 'running', ?, 'no', datetime('now'))
+      INSERT INTO orders (url, view_target, view_current, like_target, like_current, status, line_id, notified, created_at, created_by)
+      VALUES (?, ?, ?, ?, ?, 'running', ?, 'no', datetime('now'), ?)
     `).bind(
       url,
       finalViewTarget,
       currentView,
       finalLikeTarget,
       currentLike,
-      lineId || ''
+      lineId || '',
+      userEmail
     ).run();
-
-    // Log action
-    await logAction(db, userEmail, 'เพิ่มงาน Monitor', 'monitor', `View: ${viewTargetNum}, Like: ${likeTargetNum}`);
 
     let summary = 'เพิ่มงานเรียบร้อยแล้ว\n';
     if (viewTargetNum > 0) {
@@ -157,12 +144,10 @@ monitorRoutes.delete('/orders/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const db = c.env.DB;
-    const userEmail = c.get('userEmail') || 'unknown';
+    const user = c.get('user');
+    const userEmail = user?.email || 'unknown';
 
     await db.prepare('DELETE FROM orders WHERE id = ?').bind(id).run();
-
-    // Log action
-    await logAction(db, userEmail, 'ลบงาน Monitor', 'monitor', `ID: ${id}`);
 
     return c.json({ success: true, message: 'ลบงานเรียบร้อยแล้ว' });
   } catch (error: any) {
@@ -177,10 +162,6 @@ monitorRoutes.post('/check-all', async (c) => {
     const API_KEY = c.env.YOUTUBE_API_KEY;
     const TG_TOKEN = c.env.TELEGRAM_BOT_TOKEN;
     const TG_GROUP = c.env.TELEGRAM_GROUP_ID;
-    const userEmail = c.get('userEmail') || 'unknown';
-
-    // Log action
-    await logAction(db, userEmail, 'ตรวจสอบออเดอร์ทั้งหมด', 'monitor');
 
     const result = await db.prepare(`
       SELECT * FROM orders 
