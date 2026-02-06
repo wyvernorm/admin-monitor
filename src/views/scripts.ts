@@ -407,10 +407,11 @@ async function loadLastCronCheck(){
     if(!el)return;
     var d=await API.get('monitor/last-check');
     if(d&&d.lastCheck){
-      var timeStr=toThaiTime(d.lastCheck);
+      // lastCheck is ISO string (with Z) so browser already converts to local time
+      var lastDate=new Date(d.lastCheck);
+      var timeStr=lastDate.toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
       var now=new Date();
-      var last=new Date(d.lastCheck);
-      var diffMin=Math.round((now.getTime()-last.getTime())/60000);
+      var diffMin=Math.round((now.getTime()-lastDate.getTime())/60000);
       var agoStr='';
       if(diffMin<1)agoStr='เมื่อสักครู่';
       else if(diffMin<60)agoStr=diffMin+' นาทีที่แล้ว';
