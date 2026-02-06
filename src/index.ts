@@ -23,6 +23,8 @@ type Bindings = {
   RAPIDAPI_KEY: string;
   TELEGRAM_BOT_TOKEN: string;
   TELEGRAM_GROUP_ID: string;
+  REPORT_BOT_TOKEN: string;
+  REPORT_CHAT_ID: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   SESSION_SECRET: string;
@@ -601,10 +603,198 @@ async function sendTelegramNotification(token: string, groupId: string, text: st
   });
 }
 
+// ============= REPORT BOT FUNCTIONS =============
+
+// ส่งข้อความผ่านบอทรายงาน
+async function sendReportBot(token: string, chatId: string, text: string) {
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: text,
+      parse_mode: 'HTML',
+      disable_web_page_preview: true,
+    }),
+  });
+}
+
+// แจ้งเตือนงานค้างเกิน 48 ชม. (เช็คทุกรอบ cron)
+async function checkStaleOrders(env: Bindings) {
+  const db = env.DB;
+  const REPORT_TOKEN = env.REPORT_BOT_TOKEN;
+  const REPORT_CHAT = env.REPORT_CHAT_ID;
+
+  if (!REPORT_TOKEN || !REPORT_CHAT) return;
+
+  try {
+    // หา orders ที่ค้างเกิน 48 ชม. และยังไม่เคยแจ้งเตือน stale
+    const result = await db.prepare(`
+      SELECT * FROM orders 
+      WHERE status = 'running' 
+      AND created_at < datetime('now', '-48 hours')
+    `).all();
+
+    const staleOrders = result.results || [];
+    if (staleOrders.length === 0) return;
+
+    // เช็คว่าแจ้งเตือน stale ไปแล้วหรือยัง (ใช้ KV เก็บ)
+    const lastStaleAlert = await env.ADMIN_MONITOR_CACHE.get('last_stale_alert');
+    const now = new Date();
+    
+    // แจ้งเตือนทุก 6 ชม. (ไม่ spam)
+    if (lastStaleAlert) {
+      const lastTime = new Date(lastStaleAlert);
+      const hoursDiff = (now.getTime() - lastTime.getTime()) / 3600000;
+      if (hoursDiff < 6) return;
+    }
+
+    let text = `⚠️ <b>งานค้างเกิน 48 ชั่วโมง!</b>\n`;
+    text += `📋 พบ <b>${staleOrders.length}</b> งานที่ยังไม่เสร็จ\n\n`;
+
+    for (const order of staleOrders as any[]) {
+      const created = new Date(order.created_at);
+      created.setHours(created.getHours() + 7);
+      const hoursAgo = Math.floor((now.getTime() - created.getTime()) / 3600000);
+      const daysAgo = Math.floor(hoursAgo / 24);
+      const remainHours = hoursAgo % 24;
+
+      const vt = order.view_target || 0;
+      const vc = order.view_current || 0;
+      const lt = order.like_target || 0;
+      const lc = order.like_current || 0;
+      const vp = vt > 0 ? Math.min(100, Math.round((vc / vt) * 100)) : 0;
+      const lp = lt > 0 ? Math.min(100, Math.round((lc / lt) * 100)) : 0;
+
+      text += `🔸 ค้าง ${daysAgo} วัน ${remainHours} ชม.\n`;
+      if (vt > 0) text += `   👀 วิว: ${vc.toLocaleString()}/${vt.toLocaleString()} (${vp}%)\n`;
+      if (lt > 0) text += `   👍 ไลค์: ${lc.toLocaleString()}/${lt.toLocaleString()} (${lp}%)\n`;
+      if (order.line_id) text += `   👤 ${order.line_id}\n`;
+      text += `   🔗 ${order.url}\n\n`;
+    }
+
+    text += `💡 <i>ตรวจสอบที่ Admin Monitor</i>`;
+
+    await sendReportBot(REPORT_TOKEN, REPORT_CHAT, text);
+    await env.ADMIN_MONITOR_CACHE.put('last_stale_alert', now.toISOString());
+    console.log(`[REPORT] Sent stale alert for ${staleOrders.length} orders`);
+  } catch (e) {
+    console.error('[REPORT] Stale check error:', e);
+  }
+}
+
+// สรุปประจำวัน (ส่งตอน 09:00 เวลาไทย = 02:00 UTC)
+async function sendDailyReport(env: Bindings) {
+  const db = env.DB;
+  const REPORT_TOKEN = env.REPORT_BOT_TOKEN;
+  const REPORT_CHAT = env.REPORT_CHAT_ID;
+
+  if (!REPORT_TOKEN || !REPORT_CHAT) return;
+
+  try {
+    // เช็คว่าส่งรายงานวันนี้แล้วหรือยัง
+    const today = new Date().toISOString().split('T')[0];
+    const lastReport = await env.ADMIN_MONITOR_CACHE.get('last_daily_report');
+    if (lastReport === today) return;
+
+    // นับจำนวน orders ต่างๆ
+    const running = await db.prepare("SELECT COUNT(*) as c FROM orders WHERE status = 'running'").first() as any;
+    const done = await db.prepare("SELECT COUNT(*) as c FROM orders WHERE status = 'done'").first() as any;
+    const stale = await db.prepare("SELECT COUNT(*) as c FROM orders WHERE status = 'running' AND created_at < datetime('now', '-48 hours')").first() as any;
+    const nearComplete = await db.prepare(`
+      SELECT COUNT(*) as c FROM orders WHERE status = 'running'
+      AND (
+        (view_target > 0 AND like_target > 0 AND 
+         CAST(view_current AS REAL)/view_target >= 0.9 AND CAST(like_current AS REAL)/like_target >= 0.9)
+        OR (view_target > 0 AND like_target = 0 AND CAST(view_current AS REAL)/view_target >= 0.9)
+        OR (view_target = 0 AND like_target > 0 AND CAST(like_current AS REAL)/like_target >= 0.9)
+      )
+    `).first() as any;
+
+    // งานเสร็จเมื่อวาน
+    const completedYesterday = await db.prepare(`
+      SELECT COUNT(*) as c FROM orders 
+      WHERE status = 'done' AND completed_at >= datetime('now', '-24 hours')
+    `).first() as any;
+
+    // งานเพิ่มเมื่อวาน
+    const addedYesterday = await db.prepare(`
+      SELECT COUNT(*) as c FROM orders 
+      WHERE created_at >= datetime('now', '-24 hours')
+    `).first() as any;
+
+    // Activity logs วันนี้
+    const todayLogs = await db.prepare(`
+      SELECT COUNT(*) as c FROM activity_logs 
+      WHERE created_at >= datetime('now', '-24 hours')
+    `).first() as any;
+
+    const activeUsers = await db.prepare(`
+      SELECT COUNT(DISTINCT admin_email) as c FROM activity_logs 
+      WHERE created_at >= datetime('now', '-24 hours')
+    `).first() as any;
+
+    // สร้างข้อความ
+    const thaiDate = new Date();
+    thaiDate.setHours(thaiDate.getHours() + 7);
+    const dateStr = thaiDate.toLocaleDateString('th-TH', { 
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+    });
+
+    let text = `📊 <b>สรุปประจำวัน</b>\n`;
+    text += `📅 ${dateStr}\n`;
+    text += `━━━━━━━━━━━━━━━\n\n`;
+
+    text += `📦 <b>สถานะงาน</b>\n`;
+    text += `   ⏳ กำลังทำ: <b>${running?.c || 0}</b> งาน\n`;
+    text += `   ✅ เสร็จแล้ว: <b>${done?.c || 0}</b> งาน\n`;
+    if ((stale?.c || 0) > 0) {
+      text += `   ⚠️ ค้างเกิน 48 ชม.: <b>${stale.c}</b> งาน\n`;
+    }
+    if ((nearComplete?.c || 0) > 0) {
+      text += `   🔥 ใกล้เสร็จ (90%+): <b>${nearComplete.c}</b> งาน\n`;
+    }
+    text += `\n`;
+
+    text += `📈 <b>24 ชม.ที่ผ่านมา</b>\n`;
+    text += `   ➕ เพิ่มใหม่: ${addedYesterday?.c || 0} งาน\n`;
+    text += `   ✅ เสร็จ: ${completedYesterday?.c || 0} งาน\n`;
+    text += `   📝 กิจกรรม: ${todayLogs?.c || 0} ครั้ง\n`;
+    text += `   👥 ผู้ใช้งาน: ${activeUsers?.c || 0} คน\n\n`;
+
+    // สถานะรวม
+    const totalRunning = running?.c || 0;
+    const totalStale = stale?.c || 0;
+    if (totalStale > 0) {
+      text += `🚨 <b>ต้องตรวจสอบ ${totalStale} งานที่ค้างนาน!</b>\n`;
+    } else if (totalRunning === 0) {
+      text += `🎉 <b>ไม่มีงานค้าง ทุกอย่างเรียบร้อย!</b>\n`;
+    } else {
+      text += `👍 <b>งานทั้งหมดดำเนินการปกติ</b>\n`;
+    }
+
+    await sendReportBot(REPORT_TOKEN, REPORT_CHAT, text);
+    await env.ADMIN_MONITOR_CACHE.put('last_daily_report', today);
+    console.log('[REPORT] Daily report sent');
+  } catch (e) {
+    console.error('[REPORT] Daily report error:', e);
+  }
+}
+
 // Export with scheduled handler
 export default {
   fetch: app.fetch,
   async scheduled(event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) {
     ctx.waitUntil(checkAllOrdersScheduled(env));
+    
+    // เช็คงานค้างเกิน 48 ชม. ทุกรอบ (แจ้งเตือนทุก 6 ชม.)
+    ctx.waitUntil(checkStaleOrders(env));
+    
+    // สรุปประจำวัน (ส่งแค่วันละครั้ง ตอน 02:00 UTC = 09:00 เวลาไทย)
+    const hour = new Date().getUTCHours();
+    if (hour === 2) {
+      ctx.waitUntil(sendDailyReport(env));
+    }
   }
 };
