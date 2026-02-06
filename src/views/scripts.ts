@@ -1,6 +1,6 @@
 export const scripts = `
 <script>
-var user=null,lastYT=null,NL=String.fromCharCode(10),usedFB=[],usedIG=[],currentLogFilter='all',ttCache={},allLogs=[];
+var user=null,lastYT=null,NL=String.fromCharCode(10),usedFB=[],usedIG=[],currentLogFilter='all',ttCache={},allLogs=[],nameMap={};
 var prevRanks={},earnedBadges=(function(){try{return JSON.parse(localStorage.getItem('earnedBadges')||'[]');}catch(e){return [];}})();
 
 // 🎉 Celebration Functions
@@ -733,6 +733,15 @@ async function loadLogs(){
     });
     document.getElementById('platform-stats').innerHTML=platHtml;
     
+    // Build name map: use latest clean name per email (shared by leaderboard + logs table)
+    nameMap={};
+    allLogs.forEach(function(l){
+      if(!l.admin_email)return;
+      var n=l.admin_name||'';
+      if(n&&(n.indexOf('\u00c3')>=0||n.indexOf('\u00e0\u00b8')>=0||n.indexOf('\u00c2')>=0))n='';
+      if(n&&!nameMap[l.admin_email])nameMap[l.admin_email]=n;
+    });
+    
     // Leaderboard with Gamification + Rank Animation
     var lbHtml='';
     var newRanks={};
@@ -740,8 +749,9 @@ async function loadLogs(){
     else{
       stats.sort(function(a,b){return(b.total_actions||0)-(a.total_actions||0);});
       stats.slice(0,5).forEach(function(s,i){
-        var initial=(s.admin_name||s.admin_email||'?').charAt(0).toUpperCase();
-        var name=s.admin_name||(s.admin_email||'').split('@')[0]||'unknown';
+        var name=nameMap[s.admin_email]||s.admin_name||(s.admin_email||'').split('@')[0]||'unknown';
+        if(name.indexOf('\u00c3')>=0||name.indexOf('\u00e0\u00b8')>=0)name=(s.admin_email||'').split('@')[0]||'unknown';
+        var initial=name.charAt(0).toUpperCase();
         var medals=['🥇','🥈','🥉'];
         var medal=i<3?medals[i]:(i+1);
         var emailEnc=encodeURIComponent(s.admin_email||'');
@@ -802,20 +812,10 @@ function renderLogsTable(){
   emptyEl.classList.add('hidden');
   var platColors={youtube:'#ff0000',tiktok:'#00d9ff',facebook:'#1877f2',instagram:'#e1306c',monitor:'#22c55e'};
   var platIcons={youtube:'📺',tiktok:'🎵',facebook:'📘',instagram:'📷',monitor:'🧠',system:'⚙️'};
-  // Build name map: use latest non-garbled name per email
-  var nameMap={};
-  allLogs.forEach(function(l){
-    if(!l.admin_email)return;
-    var n=l.admin_name||'';
-    // Skip garbled names (contain à or common encoding artifacts)
-    if(n&&n.indexOf('Ã')>=0||n.indexOf('à¸')>=0||n.indexOf('Â')>=0)n='';
-    if(n&&!nameMap[l.admin_email])nameMap[l.admin_email]=n;
-  });
   var html='';
   filtered.slice(0,50).forEach(function(l){
     var name=nameMap[l.admin_email]||l.admin_name||(l.admin_email||'').split('@')[0]||'unknown';
-    // Final check: skip garbled
-    if(name.indexOf('Ã')>=0||name.indexOf('à¸')>=0||name.indexOf('Â')>=0)name=(l.admin_email||'').split('@')[0]||'unknown';
+    if(name.indexOf('\u00c3')>=0||name.indexOf('\u00e0\u00b8')>=0||name.indexOf('\u00c2')>=0)name=(l.admin_email||'').split('@')[0]||'unknown';
     var initial=name.charAt(0).toUpperCase();
     var cat=l.category||'system';
     var icon=platIcons[cat]||'📋';
