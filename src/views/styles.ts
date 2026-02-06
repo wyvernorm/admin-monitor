@@ -215,6 +215,18 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 @keyframes stale-pulse{0%,100%{border-color:rgba(251,146,60,.3)}50%{border-color:rgba(251,146,60,.7)}}
 .stale-badge{font-size:11px;color:#fb923c;background:rgba(251,146,60,.15);padding:3px 10px;border-radius:12px;font-weight:600;animation:stale-blink 2s ease-in-out infinite}
 @keyframes stale-blink{0%,100%{opacity:1}50%{opacity:.6}}
+.trend-btn{padding:8px 14px;background:rgba(0,217,255,.1);border:1px solid rgba(0,217,255,.3);border-radius:8px;color:var(--cyan);font-size:12px;cursor:pointer;transition:all .2s;font-weight:500}
+.trend-btn:hover{background:rgba(0,217,255,.2);border-color:var(--cyan)}
+.trend-chart{padding:16px;margin:0 -1px;border-top:1px solid var(--border);background:rgba(0,0,0,.15);border-radius:0 0 12px 12px;overflow:hidden}
+.trend-stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.trend-stat{font-size:12px;padding:4px 12px;border-radius:8px;font-weight:500}
+.trend-stat.v{color:#00d9ff;background:rgba(0,217,255,.1)}
+.trend-stat.l{color:#e879f9;background:rgba(232,121,249,.1)}
+.trend-stat.t{color:var(--muted);background:rgba(255,255,255,.05)}
+.trend-stat small{opacity:.7}
+.trend-legend{display:flex;gap:16px;margin-top:8px;justify-content:center}
+.trend-leg-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.trend-leg-line{display:inline-block;width:16px;height:3px;border-radius:2px}
 .cron-banner{background:linear-gradient(135deg,rgba(0,217,255,.08),rgba(139,92,246,.08));border:1px solid rgba(0,217,255,.2);border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:13px;color:var(--text);display:flex;align-items:center;gap:6px}
 
 /* Empty State */

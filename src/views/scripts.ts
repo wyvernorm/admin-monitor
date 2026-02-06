@@ -489,7 +489,7 @@ function getPlatform(url){if(!url)return'youtube';if(url.indexOf('tiktok')>-1)re
 function getPlatformIcon(p){return p==='youtube'?'📺':p==='tiktok'?'🎵':p==='facebook'?'📘':p==='instagram'?'📷':'🌐';}
 function getStatusBadge(s){return s==='done'?'<span class="status-badge done">✅ เสร็จ</span>':s==='running'?'<span class="status-badge running">⏳ กำลังทำ</span>':'<span class="status-badge pending">⏸️ รอ</span>';}
 
-function renderOrders(orders,id){var el=document.getElementById(id);if(!el)return;if(!orders||!orders.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">ไม่พบรายการ</div><div class="empty-desc">'+(id==='orders-list'?'ลองเปลี่ยนตัวกรองหรือค้นหาใหม่':'เพิ่มงานใหม่เพื่อเริ่มติดตาม')+'</div></div>';return;}var now=new Date();var h='';orders.forEach(function(o){var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;var vp=vt>0?Math.min(100,Math.round((vc/vt)*100)):0;var lp=lt>0?Math.min(100,Math.round((lc/lt)*100)):0;var time=o.created_at?toThaiTime(o.created_at):'';var updatedTime=o.updated_at?toThaiTime(o.updated_at):'';var plat=getPlatform(o.url);var status=getOrderStatus(o);var createdBy=o.created_by_name||(o.created_by?o.created_by.split('@')[0]:'');var isStale=false;var staleHours=0;if(status==='running'&&o.created_at){var created=new Date(o.created_at);created.setHours(created.getHours()+7);staleHours=Math.floor((now.getTime()-created.getTime())/3600000);if(staleHours>=48)isStale=true;}var staleBadge='';if(isStale){var staleDays=Math.floor(staleHours/24);staleBadge='<span class="stale-badge">⚠️ ค้างมา '+staleDays+' วัน'+(staleHours%24>0?' '+staleHours%24+' ชม.':'')+'</span>';}h+='<div class="order-card'+(isStale?' order-stale':'')+'"><div class="order-head"><span class="order-plat">'+getPlatformIcon(plat)+' '+plat.charAt(0).toUpperCase()+plat.slice(1)+'</span>'+getStatusBadge(status)+staleBadge+'<span class="order-time">'+time+'</span></div><div class="order-url"><a href="'+o.url+'" target="_blank" class="order-link">'+o.url+'</a></div><div class="metrics">';if(vt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👀 วิว</span><span class="metric-val">'+fmt(vc)+'/'+fmt(vt)+' ('+vp+'%)</span></div><div class="metric-bar"><div class="metric-fill v" style="width:'+vp+'%"></div></div></div>';if(lt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👍 ไลค์</span><span class="metric-val">'+fmt(lc)+'/'+fmt(lt)+' ('+lp+'%)</span></div><div class="metric-bar"><div class="metric-fill l" style="width:'+lp+'%"></div></div></div>';h+='</div><div class="order-foot">'+(createdBy?'<span class="order-creator">'+createdBy+'</span>':'')+(o.line_id?'<span class="order-line">💬 '+o.line_id+'</span>':'')+(updatedTime?'<span class="order-updated" title="อัพเดทล่าสุดโดย Cron">🔄 '+updatedTime+'</span>':'')+'<button class="del-btn" onclick="delOrder('+o.id+')">🗑️ ลบ</button></div></div>';});el.innerHTML=h;}
+function renderOrders(orders,id){var el=document.getElementById(id);if(!el)return;if(!orders||!orders.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">ไม่พบรายการ</div><div class="empty-desc">'+(id==='orders-list'?'ลองเปลี่ยนตัวกรองหรือค้นหาใหม่':'เพิ่มงานใหม่เพื่อเริ่มติดตาม')+'</div></div>';return;}var now=new Date();var h='';orders.forEach(function(o){var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;var vp=vt>0?Math.min(100,Math.round((vc/vt)*100)):0;var lp=lt>0?Math.min(100,Math.round((lc/lt)*100)):0;var time=o.created_at?toThaiTime(o.created_at):'';var updatedTime=o.updated_at?toThaiTime(o.updated_at):'';var plat=getPlatform(o.url);var status=getOrderStatus(o);var createdBy=o.created_by_name||(o.created_by?o.created_by.split('@')[0]:'');var isStale=false;var staleHours=0;if(status==='running'&&o.created_at){var created=new Date(o.created_at);created.setHours(created.getHours()+7);staleHours=Math.floor((now.getTime()-created.getTime())/3600000);if(staleHours>=48)isStale=true;}var staleBadge='';if(isStale){var staleDays=Math.floor(staleHours/24);staleBadge='<span class="stale-badge">⚠️ ค้างมา '+staleDays+' วัน'+(staleHours%24>0?' '+staleHours%24+' ชม.':'')+'</span>';}h+='<div class="order-card'+(isStale?' order-stale':'')+'"><div class="order-head"><span class="order-plat">'+getPlatformIcon(plat)+' '+plat.charAt(0).toUpperCase()+plat.slice(1)+'</span>'+getStatusBadge(status)+staleBadge+'<span class="order-time">'+time+'</span></div><div class="order-url"><a href="'+o.url+'" target="_blank" class="order-link">'+o.url+'</a></div><div class="metrics">';if(vt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👀 วิว</span><span class="metric-val">'+fmt(vc)+'/'+fmt(vt)+' ('+vp+'%)</span></div><div class="metric-bar"><div class="metric-fill v" style="width:'+vp+'%"></div></div></div>';if(lt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👍 ไลค์</span><span class="metric-val">'+fmt(lc)+'/'+fmt(lt)+' ('+lp+'%)</span></div><div class="metric-bar"><div class="metric-fill l" style="width:'+lp+'%"></div></div></div>';h+='</div><div id="trend-chart-'+o.id+'" class="trend-chart hidden"></div><div class="order-foot">'+(createdBy?'<span class="order-creator">'+createdBy+'</span>':'')+(o.line_id?'<span class="order-line">💬 '+o.line_id+'</span>':'')+(updatedTime?'<span class="order-updated" title="อัพเดทล่าสุดโดย Cron">🔄 '+updatedTime+'</span>':'')+'<button class="trend-btn" onclick="toggleTrend('+o.id+','+vt+','+lt+')">📈 Trend</button><button class="del-btn" onclick="delOrder('+o.id+')">🗑️ ลบ</button></div></div>';});el.innerHTML=h;}
 var deleting={};
 async function delOrder(id){
   if(deleting[id])return;
@@ -501,6 +501,137 @@ async function delOrder(id){
     loadOrders();loadDash();
   }catch(e){toast(e.message,'error');}
   finally{delete deleting[id];}
+}
+
+// ==================== TREND CHART ====================
+var trendCache={};
+async function toggleTrend(orderId,viewTarget,likeTarget){
+  var container=document.getElementById('trend-chart-'+orderId);
+  if(!container)return;
+  if(!container.classList.contains('hidden')){container.classList.add('hidden');return;}
+  container.classList.remove('hidden');
+  container.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted)">⏳ กำลังโหลดข้อมูล...</div>';
+  try{
+    var data=trendCache[orderId];
+    if(!data){
+      var d=await API.get('monitor/snapshots/'+orderId);
+      data=d.snapshots||[];
+      trendCache[orderId]=data;
+    }
+    if(data.length<2){container.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted)">📊 ยังไม่มีข้อมูล trend (ต้องรอ cron เก็บอย่างน้อย 2 จุด)</div>';return;}
+    drawTrendChart(container,data,viewTarget,likeTarget);
+  }catch(e){container.innerHTML='<div style="text-align:center;padding:16px;color:var(--danger)">❌ '+e.message+'</div>';}
+}
+
+function drawTrendChart(container,snapshots,viewTarget,likeTarget){
+  var W=container.offsetWidth||600,H=200,PAD=45,PADR=15,PADT=20,PADB=35;
+  var chartW=W-PAD-PADR,chartH=H-PADT-PADB;
+  var hasViews=viewTarget>0,hasLikes=likeTarget>0;
+
+  // Parse data
+  var points=snapshots.map(function(s){
+    var d=new Date(s.checked_at);d.setHours(d.getHours()+7);
+    return{time:d,views:s.view_current||0,likes:s.like_current||0};
+  });
+
+  // Calculate rate per hour
+  var lastP=points[points.length-1],firstP=points[0];
+  var hoursDiff=Math.max(1,(lastP.time-firstP.time)/3600000);
+  var viewRate=hasViews?Math.round((lastP.views-firstP.views)/hoursDiff):0;
+  var likeRate=hasLikes?Math.round((lastP.likes-firstP.likes)/hoursDiff*10)/10:0;
+
+  // Stats summary
+  var statsHtml='<div class="trend-stats">';
+  if(hasViews)statsHtml+='<span class="trend-stat v">👀 +'+fmt(lastP.views-firstP.views)+' วิว <small>(~'+fmt(viewRate)+'/ชม.)</small></span>';
+  if(hasLikes)statsHtml+='<span class="trend-stat l">👍 +'+fmt(lastP.likes-firstP.likes)+' ไลค์ <small>(~'+likeRate+'/ชม.)</small></span>';
+  statsHtml+='<span class="trend-stat t">🕐 '+Math.round(hoursDiff)+' ชม.</span>';
+  statsHtml+='</div>';
+
+  // SVG chart
+  var minTime=firstP.time.getTime(),maxTime=lastP.time.getTime();
+  var timeRange=maxTime-minTime||1;
+
+  function buildLine(points,key,minV,maxV,color){
+    var range=maxV-minV||1;
+    var pathD='';
+    points.forEach(function(p,i){
+      var x=PAD+((p.time.getTime()-minTime)/timeRange)*chartW;
+      var y=PADT+chartH-((p[key]-minV)/range)*chartH;
+      pathD+=(i===0?'M':'L')+x.toFixed(1)+','+y.toFixed(1);
+    });
+    // Area fill
+    var lastX=PAD+chartW,firstX=PAD;
+    var areaD=pathD+'L'+(PAD+((points[points.length-1].time.getTime()-minTime)/timeRange)*chartW).toFixed(1)+','+(PADT+chartH)+'L'+(PAD+((points[0].time.getTime()-minTime)/timeRange)*chartW).toFixed(1)+','+(PADT+chartH)+'Z';
+    return'<path d="'+areaD+'" fill="'+color+'" opacity="0.1"/><path d="'+pathD+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+  }
+
+  var svg='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">';
+
+  // Grid lines
+  for(var i=0;i<=4;i++){
+    var y=PADT+(chartH/4)*i;
+    svg+='<line x1="'+PAD+'" y1="'+y+'" x2="'+(W-PADR)+'" y2="'+y+'" stroke="rgba(255,255,255,0.06)" stroke-dasharray="4"/>';
+  }
+
+  // Time labels
+  var labelCount=Math.min(points.length,6);
+  var step=Math.max(1,Math.floor(points.length/labelCount));
+  for(var i=0;i<points.length;i+=step){
+    var x=PAD+((points[i].time.getTime()-minTime)/timeRange)*chartW;
+    var label=points[i].time.toLocaleString('th-TH',{hour:'2-digit',minute:'2-digit'});
+    svg+='<text x="'+x+'" y="'+(H-5)+'" fill="rgba(255,255,255,0.4)" font-size="10" text-anchor="middle">'+label+'</text>';
+  }
+
+  // Draw lines
+  if(hasViews){
+    var allV=points.map(function(p){return p.views;});
+    var minV=Math.min.apply(null,allV),maxV=Math.max.apply(null,allV);
+    if(viewTarget>maxV)maxV=viewTarget;
+    svg+=buildLine(points,'views',minV,maxV,'#00d9ff');
+    // Target line
+    if(viewTarget>0){
+      var ty=PADT+chartH-((viewTarget-minV)/(maxV-minV||1))*chartH;
+      if(ty>=PADT&&ty<=PADT+chartH){
+        svg+='<line x1="'+PAD+'" y1="'+ty+'" x2="'+(W-PADR)+'" y2="'+ty+'" stroke="#00d9ff" stroke-width="1" stroke-dasharray="6,3" opacity="0.5"/>';
+        svg+='<text x="'+(W-PADR-2)+'" y="'+(ty-4)+'" fill="#00d9ff" font-size="9" text-anchor="end" opacity="0.7">เป้า '+fmt(viewTarget)+'</text>';
+      }
+    }
+    // Y-axis labels for views
+    for(var i=0;i<=4;i++){
+      var val=minV+(maxV-minV)/4*i;
+      var y=PADT+chartH-(i/4)*chartH;
+      svg+='<text x="'+(PAD-4)+'" y="'+(y+3)+'" fill="rgba(0,217,255,0.5)" font-size="9" text-anchor="end">'+fmt(Math.round(val))+'</text>';
+    }
+  }
+
+  if(hasLikes){
+    var allL=points.map(function(p){return p.likes;});
+    var minL=Math.min.apply(null,allL),maxL=Math.max.apply(null,allL);
+    if(likeTarget>maxL)maxL=likeTarget;
+    svg+=buildLine(points,'likes',minL,maxL,'#e879f9');
+    if(likeTarget>0){
+      var ty=PADT+chartH-((likeTarget-minL)/(maxL-minL||1))*chartH;
+      if(ty>=PADT&&ty<=PADT+chartH){
+        svg+='<line x1="'+PAD+'" y1="'+ty+'" x2="'+(W-PADR)+'" y2="'+ty+'" stroke="#e879f9" stroke-width="1" stroke-dasharray="6,3" opacity="0.5"/>';
+        svg+='<text x="'+(W-PADR-2)+'" y="'+(ty-4)+'" fill="#e879f9" font-size="9" text-anchor="end" opacity="0.7">เป้า '+fmt(likeTarget)+'</text>';
+      }
+    }
+  }
+
+  // Dots on last point
+  if(hasViews){var allV2=points.map(function(p){return p.views;});var mnV=Math.min.apply(null,allV2),mxV=Math.max.apply(null,allV2);if(viewTarget>mxV)mxV=viewTarget;var lx=PAD+chartW,ly=PADT+chartH-((lastP.views-mnV)/(mxV-mnV||1))*chartH;svg+='<circle cx="'+lx+'" cy="'+ly+'" r="4" fill="#00d9ff"/>';}
+  if(hasLikes){var allL2=points.map(function(p){return p.likes;});var mnL=Math.min.apply(null,allL2),mxL=Math.max.apply(null,allL2);if(likeTarget>mxL)mxL=likeTarget;var lx2=PAD+chartW,ly2=PADT+chartH-((lastP.likes-mnL)/(mxL-mnL||1))*chartH;svg+='<circle cx="'+lx2+'" cy="'+ly2+'" r="4" fill="#e879f9"/>';}
+
+  svg+='</svg>';
+
+  // Legend
+  var legend='<div class="trend-legend">';
+  if(hasViews)legend+='<span class="trend-leg-item"><span class="trend-leg-line" style="background:#00d9ff"></span>วิว</span>';
+  if(hasLikes)legend+='<span class="trend-leg-item"><span class="trend-leg-line" style="background:#e879f9"></span>ไลค์</span>';
+  legend+='<span class="trend-leg-item"><span class="trend-leg-line" style="background:transparent;border-top:2px dashed rgba(255,255,255,0.3)"></span>เป้าหมาย</span>';
+  legend+='</div>';
+
+  container.innerHTML=statsHtml+svg+legend;
 }
 
 var YT_PKG={'3in1-hq':{'1000':{v:1000,l:50,s:50,lb:'1,000 วิว'},'2000':{v:2000,l:50,s:50,lb:'2,000 วิว'},'3000':{v:3000,l:50,s:50,lb:'3,000 วิว'},'5000':{v:5000,l:100,s:50,lb:'5,000 วิว'},'10000':{v:10000,l:200,s:50,lb:'10,000 วิว'},'30000':{v:30000,l:500,s:150,lb:'30,000 วิว'},'50000':{v:50000,l:1000,s:200,lb:'50,000 วิว'},'100000':{v:100000,l:3000,s:500,lb:'100,000 วิว'}},'3in1-normal':{'1000':{v:1000,l:50,s:50,lb:'1,000 วิว'},'2000':{v:2000,l:50,s:50,lb:'2,000 วิว'},'3000':{v:3000,l:50,s:50,lb:'3,000 วิว'},'5000':{v:5000,l:100,s:50,lb:'5,000 วิว'},'10000':{v:10000,l:200,s:50,lb:'10,000 วิว'},'30000':{v:30000,l:500,s:150,lb:'30,000 วิว'},'50000':{v:50000,l:1000,s:200,lb:'50,000 วิว'},'100000':{v:100000,l:3000,s:500,lb:'100,000 วิว'}},'hq':{'1000':{v:1000,lb:'1,000 วิว #HQ'},'2000':{v:2000,lb:'2,000 วิว #HQ'},'3000':{v:3000,lb:'3,000 วิว #HQ'},'5000':{v:5000,lb:'5,000 วิว #HQ'},'10000':{v:10000,lb:'10,000 วิว #HQ'},'30000':{v:30000,lb:'30,000 วิว #HQ'},'50000':{v:50000,lb:'50,000 วิว #HQ'},'100000':{v:100000,lb:'100,000 วิว #HQ'}},'normal':{'1000':{v:1000,lb:'1,000 วิว'},'2000':{v:2000,lb:'2,000 วิว'},'3000':{v:3000,lb:'3,000 วิว'},'5000':{v:5000,lb:'5,000 วิว'},'10000':{v:10000,lb:'10,000 วิว'},'30000':{v:30000,lb:'30,000 วิว'},'50000':{v:50000,lb:'50,000 วิว'},'100000':{v:100000,lb:'100,000 วิว'}},'minute':{'1000':{v:1000,lb:'1,000 วิว'},'2000':{v:2000,lb:'2,000 วิว'},'3000':{v:3000,lb:'3,000 วิว'},'5000':{v:5000,lb:'5,000 วิว'},'10000':{v:10000,lb:'10,000 วิว'},'30000':{v:30000,lb:'30,000 วิว'},'50000':{v:50000,lb:'50,000 วิว'},'100000':{v:100000,lb:'100,000 วิว'}},'subscriber':{'100':{sub:100,lb:'100+ Sub'},'200':{sub:200,lb:'200+ Sub'},'500':{sub:500,lb:'500+ Sub'},'1000':{sub:1000,lb:'1K Sub'},'2000':{sub:2000,lb:'2K Sub'},'3000':{sub:3000,lb:'3K Sub'},'5000':{sub:5000,lb:'5K Sub'},'10000':{sub:10000,lb:'10K Sub'}}};

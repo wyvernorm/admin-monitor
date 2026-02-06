@@ -484,6 +484,16 @@ async function checkAllOrdersScheduled(env: Bindings) {
           WHERE id = ?
         `).bind(currentView, currentLike, order.id).run();
 
+        // Save snapshot for trend tracking
+        try {
+          await db.prepare(`
+            INSERT INTO order_snapshots (order_id, view_current, like_current, checked_at)
+            VALUES (?, ?, ?, datetime('now'))
+          `).bind(order.id, currentView, currentLike).run();
+        } catch (e) {
+          console.error(`[CRON] Snapshot error for order ${order.id}:`, e);
+        }
+
         // Check if target reached
         const viewTarget = Number(order.view_target) || 0;
         const likeTarget = Number(order.like_target) || 0;

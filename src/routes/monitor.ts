@@ -214,6 +214,14 @@ monitorRoutes.post('/check-all', async (c) => {
         WHERE id = ?
       `).bind(newView, newLike, order.id).run();
 
+      // Save snapshot for trend tracking
+      try {
+        await db.prepare(`
+          INSERT INTO order_snapshots (order_id, view_current, like_current, checked_at)
+          VALUES (?, ?, ?, datetime('now'))
+        `).bind(order.id, newView, newLike).run();
+      } catch (e) {}
+
       checkedCount++;
 
       // Check if complete
@@ -273,6 +281,25 @@ monitorRoutes.get('/last-check', async (c) => {
     return c.json({ lastCheck: lastCheck || null });
   } catch (error: any) {
     return c.json({ lastCheck: null }, 200);
+  }
+});
+
+// ============= GET ORDER SNAPSHOTS (TREND DATA) =============
+monitorRoutes.get('/snapshots/:id', async (c) => {
+  try {
+    const orderId = c.req.param('id');
+    const db = c.env.DB;
+
+    const result = await db.prepare(`
+      SELECT view_current, like_current, checked_at
+      FROM order_snapshots 
+      WHERE order_id = ?
+      ORDER BY checked_at ASC
+    `).bind(orderId).all();
+
+    return c.json({ snapshots: result.results || [] });
+  } catch (error: any) {
+    return c.json({ snapshots: [] }, 200);
   }
 });
 
