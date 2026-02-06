@@ -186,7 +186,7 @@ app.get('/api/logs/user/:email', async (c) => {
 });
 
 // Log action helper with deduplication
-async function logAction(db: D1Database, email: string, action: string, category: string, details?: string) {
+async function logAction(db: D1Database, email: string, action: string, category: string, details?: string, adminName?: string) {
   // Check for duplicate within 5 seconds
   const recent = await db.prepare(`
     SELECT id FROM activity_logs 
@@ -200,11 +200,12 @@ async function logAction(db: D1Database, email: string, action: string, category
     return null;
   }
   
-  console.log('[LOG] Inserting:', { email, action, category, details });
+  const name = adminName || email.split('@')[0] || '';
+  console.log('[LOG] Inserting:', { email, name, action, category, details });
   const result = await db.prepare(`
-    INSERT INTO activity_logs (admin_email, action, category, details, created_at)
-    VALUES (?, ?, ?, ?, datetime('now'))
-  `).bind(email, action, category, details || '').run();
+    INSERT INTO activity_logs (admin_email, admin_name, action, category, details, created_at)
+    VALUES (?, ?, ?, ?, ?, datetime('now'))
+  `).bind(email, name, action, category, details || '').run();
   console.log('[LOG] Insert result:', result);
   return result;
 }
@@ -215,22 +216,21 @@ app.post('/api/log-action', async (c) => {
     const { action, category, details, email } = await c.req.json();
     const db = c.env.DB;
     
-    // ใช้ email จาก body (ส่งมาจาก frontend)
+    // ดึงข้อมูลจาก session (มี email + name)
     let userEmail = email || 'unknown';
+    let userName = '';
     
-    // Fallback: ดึงจาก session cookie ถ้าไม่มี email
-    if (userEmail === 'unknown') {
-      const sessionToken = getCookie(c, 'session');
-      if (sessionToken) {
-        try {
-          const session = JSON.parse(atob(sessionToken));
-          userEmail = session.email || 'unknown';
-        } catch (e) {}
-      }
+    const sessionToken = c.req.header('X-Session-Token') || getCookie(c, 'session');
+    if (sessionToken) {
+      try {
+        const session = JSON.parse(atob(sessionToken));
+        if (userEmail === 'unknown') userEmail = session.email || 'unknown';
+        userName = session.name || '';
+      } catch (e) {}
     }
     
-    console.log('[LOG-ACTION] Attempting to log:', { userEmail, action, category });
-    const result = await logAction(db, userEmail, action, category, details);
+    console.log('[LOG-ACTION] Attempting to log:', { userEmail, userName, action, category });
+    const result = await logAction(db, userEmail, action, category, details, userName);
     console.log('[LOG-ACTION] Success:', result);
     
     return c.json({ success: true, email: userEmail, dbResult: result });

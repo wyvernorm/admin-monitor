@@ -1,7 +1,7 @@
 export const scripts = `
 <script>
 var user=null,lastYT=null,NL=String.fromCharCode(10),usedFB=[],usedIG=[],currentLogFilter='all',ttCache={},allLogs=[];
-var prevRanks={},earnedBadges=[];
+var prevRanks={},earnedBadges=(function(){try{return JSON.parse(localStorage.getItem('earnedBadges')||'[]');}catch(e){return [];}})();
 
 // 🎉 Celebration Functions
 function fireConfetti(){
@@ -777,6 +777,7 @@ async function loadLogs(){
             if(earnedBadges.indexOf(b.id)===-1){
               if(earnedBadges.length>0)showBadgeEarned(b);
               earnedBadges.push(b.id);
+              try{localStorage.setItem('earnedBadges',JSON.stringify(earnedBadges));}catch(e){}
             }
           });
         }
@@ -800,9 +801,20 @@ function renderLogsTable(){
   emptyEl.classList.add('hidden');
   var platColors={youtube:'#ff0000',tiktok:'#00d9ff',facebook:'#1877f2',instagram:'#e1306c',monitor:'#22c55e'};
   var platIcons={youtube:'📺',tiktok:'🎵',facebook:'📘',instagram:'📷',monitor:'🧠',system:'⚙️'};
+  // Build name map: use latest non-garbled name per email
+  var nameMap={};
+  allLogs.forEach(function(l){
+    if(!l.admin_email)return;
+    var n=l.admin_name||'';
+    // Skip garbled names (contain à or common encoding artifacts)
+    if(n&&n.indexOf('Ã')>=0||n.indexOf('à¸')>=0||n.indexOf('Â')>=0)n='';
+    if(n&&!nameMap[l.admin_email])nameMap[l.admin_email]=n;
+  });
   var html='';
   filtered.slice(0,50).forEach(function(l){
-    var name=l.admin_name||(l.admin_email||'').split('@')[0]||'unknown';
+    var name=nameMap[l.admin_email]||l.admin_name||(l.admin_email||'').split('@')[0]||'unknown';
+    // Final check: skip garbled
+    if(name.indexOf('Ã')>=0||name.indexOf('à¸')>=0||name.indexOf('Â')>=0)name=(l.admin_email||'').split('@')[0]||'unknown';
     var initial=name.charAt(0).toUpperCase();
     var cat=l.category||'system';
     var icon=platIcons[cat]||'📋';
