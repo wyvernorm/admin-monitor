@@ -207,9 +207,11 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .metric-fill{height:100%;border-radius:3px;transition:width .3s}
 .metric-fill.v{background:linear-gradient(90deg,var(--accent),var(--cyan))}
 .metric-fill.l{background:linear-gradient(90deg,var(--pink),var(--purple))}
-.order-foot{display:flex;justify-content:flex-end}
+.order-foot{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap}
 .del-btn{padding:8px 14px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;transition:all .2s}
 .del-btn:hover{border-color:var(--danger);color:var(--danger);background:rgba(239,68,68,.1)}
+.order-updated{font-size:11px;color:var(--cyan);background:rgba(0,217,255,.1);padding:4px 10px;border-radius:12px;font-weight:500}
+.cron-banner{background:linear-gradient(135deg,rgba(0,217,255,.08),rgba(139,92,246,.08));border:1px solid rgba(0,217,255,.2);border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:13px;color:var(--text);display:flex;align-items:center;gap:6px}
 
 /* Empty State */
 .empty{text-align:center;padding:48px 24px;color:var(--muted)}

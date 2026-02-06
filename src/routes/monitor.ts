@@ -252,12 +252,27 @@ monitorRoutes.post('/check-all', async (c) => {
       }
     }
 
+    // Save last check time to KV
+    try {
+      await c.env.ADMIN_MONITOR_CACHE.put('last_cron_check', new Date().toISOString());
+    } catch (e) {}
+
     return c.json({ 
       success: true, 
       message: `ตรวจสอบแล้ว ${checkedCount} งาน, เสร็จสมบูรณ์ ${completedCount} งาน` 
     });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
+  }
+});
+
+// ============= GET LAST CRON CHECK TIME =============
+monitorRoutes.get('/last-check', async (c) => {
+  try {
+    const lastCheck = await c.env.ADMIN_MONITOR_CACHE.get('last_cron_check');
+    return c.json({ lastCheck: lastCheck || null });
+  } catch (error: any) {
+    return c.json({ lastCheck: null }, 200);
   }
 });
 
