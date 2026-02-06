@@ -1058,6 +1058,80 @@ async function cronHealthCheck(env: Bindings) {
   }
 }
 
+// ============= ENSEMBLE CREDIT ALERT =============
+// เช็คเครดิต EnsembleData ทุกรอบ cron — แจ้งเตือนถ้าเหลือน้อย
+async function checkEnsembleCredits(env: Bindings) {
+  const REPORT_TOKEN = env.REPORT_BOT_TOKEN;
+  const REPORT_CHAT = env.REPORT_CHAT_ID;
+  const cache = env.ADMIN_MONITOR_CACHE;
+
+  if (!REPORT_TOKEN || !REPORT_CHAT) return;
+
+  const ALERT_THRESHOLD = 10; // แจ้งเตือนถ้าเหลือต่ำกว่า 10 units
+  const DAILY_LIMIT = 50;     // Free tier
+
+  const tokens: { key: string; token: string; label: string }[] = [
+    { key: 'tiktok', token: env.ENSEMBLE_TOKEN, label: '🎵 TikTok' },
+    { key: 'instagram', token: env.ENSEMBLE_IG_TOKEN, label: '📷 Instagram' },
+  ];
+
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const alerts: string[] = [];
+
+    for (const { key, token, label } of tokens) {
+      if (!token) continue;
+
+      try {
+        const res = await fetch(
+          `https://ensembledata.com/apis/customer/get-used-units?date=${today}&token=${token}`
+        );
+        const data = await res.json() as any;
+        const used = Number(data?.data?.used_units ?? data?.data ?? 0);
+        const remaining = DAILY_LIMIT - used;
+
+        if (remaining <= ALERT_THRESHOLD) {
+          alerts.push(`${label}: เหลือ <b>${remaining}</b>/${DAILY_LIMIT} units (ใช้ไป ${used})`);
+        }
+
+        // ถ้าหมดเลย (0) แจ้งเตือนพิเศษ
+        if (remaining <= 0) {
+          alerts.push(`⚠️ ${label}: <b>หมดแล้ว!</b> ระบบจะใช้ Apify แทน (ช้ากว่า)`);
+        }
+      } catch (e) {
+        console.error(`[EnsembleAlert] Error checking ${key}:`, e);
+      }
+    }
+
+    if (alerts.length === 0) return;
+
+    // เช็คว่าแจ้งไปแล้วหรือยังวันนี้ (ไม่แจ้งซ้ำทุก 30 นาที)
+    const alertKey = `ensemble_alert_${today}`;
+    const lastAlert = await cache?.get(alertKey);
+    
+    // แจ้งซ้ำได้ทุก 6 ชม.
+    if (lastAlert) {
+      const lastTime = new Date(lastAlert).getTime();
+      const now = Date.now();
+      if (now - lastTime < 6 * 60 * 60 * 1000) return; // ยังไม่ถึง 6 ชม.
+    }
+
+    const text = `🔋 <b>EnsembleData Credit Alert</b>
+
+${alerts.join('\n')}
+
+📅 วันที่: ${today}
+💡 เครดิตจะรีเซ็ตรอบใหม่พรุ่งนี้`;
+
+    await sendReportBot(REPORT_TOKEN, REPORT_CHAT, text);
+    await cache?.put(alertKey, new Date().toISOString(), { expirationTtl: 86400 });
+
+    console.log(`[EnsembleAlert] Alert sent: ${alerts.length} warnings`);
+  } catch (e) {
+    console.error('[EnsembleAlert] Error:', e);
+  }
+}
+
 // Export with scheduled handler
 export default {
   fetch: app.fetch,
@@ -1070,6 +1144,9 @@ export default {
     
     // เช็คงานค้างเกิน 48 ชม. ทุกรอบ (แจ้งเตือนทุก 6 ชม.)
     ctx.waitUntil(checkStaleOrders(env));
+    
+    // เช็คเครดิต EnsembleData (แจ้งเตือนทุก 6 ชม. ถ้าเหลือน้อย)
+    ctx.waitUntil(checkEnsembleCredits(env));
     
     // สรุปประจำวัน (ส่งแค่วันละครั้ง ตอน 02:00 UTC = 09:00 เวลาไทย)
     const hour = new Date().getUTCHours();
