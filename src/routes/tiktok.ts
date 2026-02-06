@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 type Bindings = {
   DB: D1Database;
   APIFY_TOKEN: string;
+  ENSEMBLE_TOKEN: string;
   ADMIN_MONITOR_CACHE: KVNamespace;
 };
 
@@ -48,6 +49,85 @@ function extractUsername(url: string): string | null {
   return match ? match[1] : null;
 }
 
+// ============= ENSEMBLEDATA API HELPERS =============
+
+const ENSEMBLE_BASE = 'https://ensembledata.com/apis';
+
+// ดึงข้อมูลวิดีโอ TikTok ผ่าน EnsembleData (เร็ว <2 วินาที)
+async function fetchTiktokPostInfo(url: string, token: string): Promise<{
+  views: number;
+  likes: number;
+  shares: number;
+  bookmarks: number;
+  comments: number;
+  authorFollowers: number;
+  nickname: string;
+  username: string;
+} | null> {
+  try {
+    const apiUrl = `${ENSEMBLE_BASE}/tt/post/info?url=${encodeURIComponent(url)}&token=${token}`;
+    const res = await fetch(apiUrl);
+    
+    if (!res.ok) {
+      console.error(`[EnsembleData] HTTP ${res.status} for ${url}`);
+      return null;
+    }
+
+    const data = await res.json() as any;
+    
+    // Response structure: data["0"].statistics / data["0"].author
+    const item = data?.data?.['0'] || data?.data;
+    if (!item) return null;
+
+    const stats = item.statistics || {};
+    const author = item.author || {};
+
+    return {
+      views: Number(stats.play_count || 0),
+      likes: Number(stats.digg_count || 0),
+      shares: Number(stats.share_count || 0),
+      bookmarks: Number(stats.collect_count || 0),
+      comments: Number(stats.comment_count || 0),
+      authorFollowers: Number(author.follower_count || 0),
+      nickname: author.nickname || '',
+      username: author.unique_id || '',
+    };
+  } catch (e) {
+    console.error('[EnsembleData] Fetch error:', e);
+    return null;
+  }
+}
+
+// ดึงข้อมูล user TikTok ผ่าน EnsembleData
+async function fetchTiktokUserInfo(username: string, token: string): Promise<{
+  followers: number;
+  nickname: string;
+  username: string;
+} | null> {
+  try {
+    const apiUrl = `${ENSEMBLE_BASE}/tt/user/info?username=${encodeURIComponent(username)}&token=${token}`;
+    const res = await fetch(apiUrl);
+    
+    if (!res.ok) {
+      console.error(`[EnsembleData] User HTTP ${res.status} for ${username}`);
+      return null;
+    }
+
+    const data = await res.json() as any;
+    const user = data?.data?.user || data?.data?.userInfo?.user || {};
+    const userStats = data?.data?.stats || data?.data?.userInfo?.stats || {};
+
+    return {
+      followers: Number(userStats.followerCount || user.follower_count || 0),
+      nickname: user.nickname || user.uniqueId || username,
+      username: user.uniqueId || user.unique_id || username,
+    };
+  } catch (e) {
+    console.error('[EnsembleData] User fetch error:', e);
+    return null;
+  }
+}
+
 // ============= GET TIKTOK STATS =============
 tiktokRoutes.post('/stats', async (c) => {
   try {
@@ -56,7 +136,7 @@ tiktokRoutes.post('/stats', async (c) => {
       return c.json({ error: 'URL is required' }, 400);
     }
 
-    const token = c.env.APIFY_TOKEN;
+    const token = c.env.ENSEMBLE_TOKEN;
     const cache = c.env.ADMIN_MONITOR_CACHE;
 
     // Expand short URL
@@ -69,43 +149,20 @@ tiktokRoutes.post('/stats', async (c) => {
       return c.json({ ...JSON.parse(cached), fromCache: true, url: fullUrl });
     }
 
-    // Call Apify
-    const ACTOR_ID = 'clockworks~tiktok-scraper';
-    const runRes = await fetch(
-      `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${token}&waitForFinish=120`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          postURLs: [fullUrl]
-        }),
-      }
-    );
-
-    const runJson = await runRes.json() as any;
-    const datasetId = runJson?.data?.defaultDatasetId;
-
-    if (!datasetId) {
-      return c.json({ error: 'Failed to start Apify actor' }, 500);
+    // Call EnsembleData
+    const postInfo = await fetchTiktokPostInfo(fullUrl, token);
+    
+    if (!postInfo) {
+      return c.json({ error: 'ไม่สามารถดึงข้อมูลได้ ลองใหม่อีกครั้ง' }, 500);
     }
 
-    const dataRes = await fetch(
-      `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token}&clean=true`
-    );
-
-    const items = await dataRes.json() as any[];
-    if (!items || items.length === 0) {
-      return c.json({ error: 'No data found' }, 404);
-    }
-
-    const item = items[0];
     const result = {
-      views: Number(item.playCount || item.stats?.playCount || 0),
-      likes: Number(item.diggCount || item.stats?.diggCount || 0),
-      shares: Number(item.shareCount || item.stats?.shareCount || 0),
-      bookmarks: Number(item.collectCount || item.stats?.collectCount || 0),
-      comments: Number(item.commentCount || item.stats?.commentCount || 0),
-      authorFollowers: Number(item.authorMeta?.fans || item.authorMeta?.followerCount || 0),
+      views: postInfo.views,
+      likes: postInfo.likes,
+      shares: postInfo.shares,
+      bookmarks: postInfo.bookmarks,
+      comments: postInfo.comments,
+      authorFollowers: postInfo.authorFollowers,
     };
 
     // Cache for 5 minutes
@@ -125,7 +182,7 @@ tiktokRoutes.post('/follower', async (c) => {
       return c.json({ error: 'URL or username is required' }, 400);
     }
 
-    const token = c.env.APIFY_TOKEN;
+    const token = c.env.ENSEMBLE_TOKEN;
     const cache = c.env.ADMIN_MONITOR_CACHE;
 
     // Extract username
@@ -143,47 +200,18 @@ tiktokRoutes.post('/follower', async (c) => {
       return c.json({ ...JSON.parse(cached), fromCache: true });
     }
 
-    // Call Apify
-    const ACTOR_ID = 'clockworks~tiktok-scraper';
-    const runRes = await fetch(
-      `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${token}&waitForFinish=120`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          profiles: [`https://www.tiktok.com/@${username}`],
-          resultsPerPage: 1,
-          shouldDownloadCovers: false,
-          shouldDownloadVideos: false,
-          shouldDownloadSubtitles: false
-        }),
-      }
-    );
+    // Call EnsembleData User Info
+    const userInfo = await fetchTiktokUserInfo(username, token);
 
-    const runJson = await runRes.json() as any;
-    const datasetId = runJson?.data?.defaultDatasetId;
-
-    if (!datasetId) {
-      return c.json({ error: 'Failed to start Apify actor' }, 500);
+    if (!userInfo) {
+      return c.json({ error: 'ไม่พบข้อมูลผู้ใช้' }, 404);
     }
-
-    const dataRes = await fetch(
-      `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token}&clean=true`
-    );
-
-    const items = await dataRes.json() as any[];
-    if (!items || items.length === 0) {
-      return c.json({ error: 'No data found' }, 404);
-    }
-
-    const video = items[0];
-    const author = video.authorMeta || {};
 
     const result = {
       username: '@' + username,
       profileUrl: 'https://www.tiktok.com/@' + username,
-      followers: Number(author.fans || 0),
-      nickname: author.name || author.nickName || username,
+      followers: userInfo.followers,
+      nickname: userInfo.nickname,
     };
 
     // Cache for 5 minutes
@@ -204,7 +232,7 @@ tiktokRoutes.post('/summary', async (c) => {
       return c.json({ error: 'Missing required fields' }, 400);
     }
 
-    const token = c.env.APIFY_TOKEN;
+    const token = c.env.ENSEMBLE_TOKEN;
     const cache = c.env.ADMIN_MONITOR_CACHE;
 
     // Process multiple URLs
@@ -222,36 +250,15 @@ tiktokRoutes.post('/summary', async (c) => {
       if (cached) {
         stats = JSON.parse(cached);
       } else {
-        // Fetch from Apify
-        const ACTOR_ID = 'clockworks~tiktok-scraper';
-        const runRes = await fetch(
-          `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${token}&waitForFinish=120`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ postURLs: [fullUrl] }),
-          }
-        );
-
-        const runJson = await runRes.json() as any;
-        const datasetId = runJson?.data?.defaultDatasetId;
-
-        if (datasetId) {
-          const dataRes = await fetch(
-            `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token}&clean=true`
-          );
-          const items = await dataRes.json() as any[];
-
-          if (items && items.length > 0) {
-            const item = items[0];
-            stats = {
-              views: Number(item.playCount || 0),
-              likes: Number(item.diggCount || 0),
-              shares: Number(item.shareCount || 0),
-              bookmarks: Number(item.collectCount || 0),
-            };
-            await cache?.put(cacheKey, JSON.stringify(stats), { expirationTtl: 300 });
-          }
+        const postInfo = await fetchTiktokPostInfo(fullUrl, token);
+        if (postInfo) {
+          stats = {
+            views: postInfo.views,
+            likes: postInfo.likes,
+            shares: postInfo.shares,
+            bookmarks: postInfo.bookmarks,
+          };
+          await cache?.put(cacheKey, JSON.stringify(stats), { expirationTtl: 300 });
         }
       }
 
@@ -313,7 +320,7 @@ tiktokRoutes.post('/summary-all', async (c) => {
       return c.json({ error: 'Missing required fields' }, 400);
     }
 
-    const token = c.env.APIFY_TOKEN;
+    const token = c.env.ENSEMBLE_TOKEN;
     const cache = c.env.ADMIN_MONITOR_CACHE;
 
     // Process URLs
@@ -331,37 +338,16 @@ tiktokRoutes.post('/summary-all', async (c) => {
       if (cached) {
         stats = JSON.parse(cached);
       } else {
-        // Fetch from Apify
-        const ACTOR_ID = 'clockworks~tiktok-scraper';
-        const runRes = await fetch(
-          `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${token}&waitForFinish=120`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ postURLs: [fullUrl] }),
-          }
-        );
-
-        const runJson = await runRes.json() as any;
-        const datasetId = runJson?.data?.defaultDatasetId;
-
-        if (datasetId) {
-          const dataRes = await fetch(
-            `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token}&clean=true`
-          );
-          const fetchedItems = await dataRes.json() as any[];
-
-          if (fetchedItems && fetchedItems.length > 0) {
-            const item = fetchedItems[0];
-            stats = {
-              views: Number(item.playCount || 0),
-              likes: Number(item.diggCount || 0),
-              shares: Number(item.shareCount || 0),
-              bookmarks: Number(item.collectCount || 0),
-              authorFollowers: Number(item.authorMeta?.fans || 0),
-            };
-            await cache?.put(cacheKey, JSON.stringify(stats), { expirationTtl: 300 });
-          }
+        const postInfo = await fetchTiktokPostInfo(fullUrl, token);
+        if (postInfo) {
+          stats = {
+            views: postInfo.views,
+            likes: postInfo.likes,
+            shares: postInfo.shares,
+            bookmarks: postInfo.bookmarks,
+            authorFollowers: postInfo.authorFollowers,
+          };
+          await cache?.put(cacheKey, JSON.stringify(stats), { expirationTtl: 300 });
         }
       }
 
@@ -428,7 +414,7 @@ tiktokRoutes.post('/follower-summary', async (c) => {
       return c.json({ error: 'Missing required fields' }, 400);
     }
 
-    const token = c.env.APIFY_TOKEN;
+    const token = c.env.ENSEMBLE_TOKEN;
     const cache = c.env.ADMIN_MONITOR_CACHE;
 
     // Process URLs/usernames
@@ -451,39 +437,15 @@ tiktokRoutes.post('/follower-summary', async (c) => {
       if (cached) {
         followerData = JSON.parse(cached);
       } else {
-        // Fetch from Apify
-        const ACTOR_ID = 'clockworks~tiktok-scraper';
-        const runRes = await fetch(
-          `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${token}&waitForFinish=120`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              profiles: [`https://www.tiktok.com/@${username}`],
-              resultsPerPage: 1,
-            }),
-          }
-        );
-
-        const runJson = await runRes.json() as any;
-        const datasetId = runJson?.data?.defaultDatasetId;
-
-        if (datasetId) {
-          const dataRes = await fetch(
-            `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token}&clean=true`
-          );
-          const items = await dataRes.json() as any[];
-
-          if (items && items.length > 0) {
-            const author = items[0].authorMeta || {};
-            followerData = {
-              username: '@' + username,
-              profileUrl: 'https://www.tiktok.com/@' + username,
-              followers: Number(author.fans || 0),
-              nickname: author.name || author.nickName || username,
-            };
-            await cache?.put(cacheKey, JSON.stringify(followerData), { expirationTtl: 300 });
-          }
+        const userInfo = await fetchTiktokUserInfo(username, token);
+        if (userInfo) {
+          followerData = {
+            username: '@' + username,
+            profileUrl: 'https://www.tiktok.com/@' + username,
+            followers: userInfo.followers,
+            nickname: userInfo.nickname,
+          };
+          await cache?.put(cacheKey, JSON.stringify(followerData), { expirationTtl: 300 });
         }
       }
 
