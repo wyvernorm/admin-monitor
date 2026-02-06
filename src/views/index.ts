@@ -45,6 +45,7 @@ export function renderIndex(): string {
       <div class="menu-item" data-page="logs" onclick="mobileGoTo('logs')"><span class="menu-icon">📜</span>Activity Logs</div>
       <div class="menu-item" data-page="calendar" onclick="mobileGoTo('calendar')"><span class="menu-icon">📅</span>ปฏิทินแจ้งเตือน</div>
       <div class="menu-item" data-page="botorder" onclick="mobileGoTo('botorder')"><span class="menu-icon">🤖</span>บอทออเดอร์</div>
+      <a href="https://shift-manager.iplusview.workers.dev/" target="_blank" class="menu-item" style="text-decoration:none;color:inherit"><span class="menu-icon">📋</span>วันหยุด + KPI</a>
     </div>
     <aside class="sidebar">
       <div class="logo-box"><div class="logo-icon">📊</div><div><div class="logo-text">Admin Monitor</div><div class="logo-ver">v3.0</div></div></div>
@@ -76,6 +77,7 @@ export function renderIndex(): string {
         <div class="menu-item" data-page="calendar"><span class="menu-icon">📅</span>ปฏิทินแจ้งเตือน</div>
         <div class="menu-item" data-page="botorder"><span class="menu-icon">🤖</span>บอทออเดอร์</div>
         <div class="menu-item hidden" data-page="gamification" id="menu-gamification"><span class="menu-icon">🎮</span>Gamification</div>
+        <a href="https://shift-manager.iplusview.workers.dev/" target="_blank" class="menu-item" style="text-decoration:none;color:inherit"><span class="menu-icon">📋</span>วันหยุด + KPI</a>
       </div>
     </aside>
     <main class="main">
