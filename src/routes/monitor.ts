@@ -303,6 +303,35 @@ monitorRoutes.get('/snapshots/:id', async (c) => {
   }
 });
 
+// ============= HEALTH CHECK STATUS =============
+monitorRoutes.get('/health', async (c) => {
+  try {
+    const kv = c.env.ADMIN_MONITOR_CACHE;
+    const lastCheck = await kv.get('last_cron_check');
+    const healthStr = await kv.get('cron_health');
+    const health = healthStr ? JSON.parse(healthStr) : null;
+
+    let status = 'ok';
+    let hoursSinceLast = 0;
+    if (lastCheck) {
+      hoursSinceLast = (Date.now() - new Date(lastCheck).getTime()) / 3600000;
+      if (hoursSinceLast >= 2) status = 'critical';
+      else if (hoursSinceLast >= 1) status = 'warning';
+    } else {
+      status = 'unknown';
+    }
+
+    return c.json({
+      status,
+      lastCronCheck: lastCheck,
+      hoursSinceLast: Math.round(hoursSinceLast * 10) / 10,
+      lastHealth: health,
+    });
+  } catch (error: any) {
+    return c.json({ status: 'error', error: error.message }, 200);
+  }
+});
+
 // ============= GET DASHBOARD DATA =============
 monitorRoutes.get('/dashboard', async (c) => {
   try {

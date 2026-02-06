@@ -90,6 +90,7 @@ export function renderIndex(): string {
         </div>
         <div class="section-header"><div class="section-title"><span class="live-dot"></span>งานล่าสุด</div><button class="refresh-btn" onclick="refreshOrders()">🔄 รีเฟรช</button></div>
         <div id="dash-cron-check" class="cron-banner hidden"></div>
+        <div id="dash-health" class="health-banner hidden"></div>
         <div id="dash-orders"></div>
       </div>
 

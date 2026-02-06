@@ -316,6 +316,7 @@ function switchTab(platform,tab){
 async function loadDash(){
   var statsEl=document.querySelector('.stats-row');
   loadLastCronCheck();
+  loadHealthCheck();
   try{
     var d=await API.monitor.list();
     var orders=d.orders||[];
@@ -426,6 +427,30 @@ async function loadLastCronCheck(){
       }
     });
   }catch(e){console.log('Failed to load last cron check:',e);}
+}
+
+async function loadHealthCheck(){
+  try{
+    var el=document.getElementById('dash-health');
+    if(!el)return;
+    var d=await API.get('monitor/health');
+    if(!d)return;
+    if(d.status==='critical'){
+      el.className='health-banner health-critical';
+      el.innerHTML='🚨 <strong>Cron หยุดทำงาน!</strong> ไม่ได้รันมา '+d.hoursSinceLast+' ชม.'+(d.lastHealth&&d.lastHealth.errors>0?' (API errors: '+d.lastHealth.errors+')':'');
+      el.classList.remove('hidden');
+    }else if(d.status==='warning'){
+      el.className='health-banner health-warning';
+      el.innerHTML='⚠️ Cron อาจมีปัญหา — ไม่ได้รันมา '+d.hoursSinceLast+' ชม.';
+      el.classList.remove('hidden');
+    }else if(d.lastHealth&&d.lastHealth.errors>0){
+      el.className='health-banner health-warning';
+      el.innerHTML='⚠️ Cron รอบล่าสุดพบ API error '+d.lastHealth.errors+' รายการ';
+      el.classList.remove('hidden');
+    }else{
+      el.classList.add('hidden');
+    }
+  }catch(e){console.log('Health check error:',e);}
 }
 
 function updateBadge(){

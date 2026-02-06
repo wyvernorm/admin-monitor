@@ -228,6 +228,10 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .trend-leg-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
 .trend-leg-line{display:inline-block;width:16px;height:3px;border-radius:2px}
 .cron-banner{background:linear-gradient(135deg,rgba(0,217,255,.08),rgba(139,92,246,.08));border:1px solid rgba(0,217,255,.2);border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:13px;color:var(--text);display:flex;align-items:center;gap:6px}
+.health-banner{padding:10px 16px;border-radius:10px;font-size:13px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.health-critical{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#f87171;animation:health-pulse 2s ease-in-out infinite}
+.health-warning{background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.3);color:#fb923c}
+@keyframes health-pulse{0%,100%{border-color:rgba(239,68,68,.3)}50%{border-color:rgba(239,68,68,.7)}}
 
 /* Empty State */
 .empty{text-align:center;padding:48px 24px;color:var(--muted)}

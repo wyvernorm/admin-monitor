@@ -473,6 +473,7 @@ async function checkAllOrdersScheduled(env: Bindings) {
     console.log(`[CRON] Found ${orders.length} running orders`);
 
     let completedCount = 0;
+    let apiErrors: { platform: string; code: number; message: string }[] = [];
 
     for (const order of orders) {
       try {
@@ -482,6 +483,24 @@ async function checkAllOrdersScheduled(env: Bindings) {
 
         const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoId}&key=${API_KEY}`;
         const res = await fetch(apiUrl);
+        
+        // ตรวจจับ API error
+        if (!res.ok) {
+          const errBody = await res.text();
+          const isDuplicate = apiErrors.some(e => e.platform === 'YouTube' && e.code === res.status);
+          if (!isDuplicate) {
+            apiErrors.push({ 
+              platform: 'YouTube', 
+              code: res.status, 
+              message: res.status === 403 ? 'Quota exceeded / Forbidden' : 
+                       res.status === 429 ? 'Rate limit exceeded' : 
+                       `HTTP ${res.status}` 
+            });
+          }
+          console.error(`[CRON] YouTube API error ${res.status} for order ${order.id}`);
+          continue;
+        }
+        
         const data = await res.json() as any;
 
         if (!data.items || data.items.length === 0) continue;
@@ -570,8 +589,61 @@ async function checkAllOrdersScheduled(env: Bindings) {
       console.error('[CRON] Snapshot cleanup error:', e);
     }
 
-    console.log(`[CRON] Finished. Completed: ${completedCount}`);
-    return { success: true, checked: orders.length, completed: completedCount };
+    // Save cron health status (สำหรับ health check)
+    try {
+      await env.ADMIN_MONITOR_CACHE.put('cron_health', JSON.stringify({
+        lastRun: new Date().toISOString(),
+        checked: orders.length,
+        completed: completedCount,
+        errors: apiErrors.length,
+      }));
+    } catch (e) {}
+
+    // ===== API QUOTA ALERT =====
+    if (apiErrors.length > 0) {
+      try {
+        const REPORT_TOKEN = env.REPORT_BOT_TOKEN;
+        const REPORT_CHAT = env.REPORT_CHAT_ID;
+        if (REPORT_TOKEN && REPORT_CHAT) {
+          // เช็คว่าแจ้งเตือน quota ไปแล้วหรือยัง (ทุก 2 ชม.)
+          const lastQuotaAlert = await env.ADMIN_MONITOR_CACHE.get('last_quota_alert');
+          let shouldAlert = true;
+          if (lastQuotaAlert) {
+            const hoursDiff = (Date.now() - new Date(lastQuotaAlert).getTime()) / 3600000;
+            if (hoursDiff < 2) shouldAlert = false;
+          }
+
+          if (shouldAlert) {
+            let text = `🚨 <b>API Error Alert!</b>\n\n`;
+            text += `Cron ตรวจพบปัญหา API ขณะเช็คงาน:\n\n`;
+            
+            for (const err of apiErrors) {
+              const icon = err.code === 403 ? '🔴' : err.code === 429 ? '🟠' : '🟡';
+              text += `${icon} <b>${err.platform}</b>\n`;
+              text += `   Status: ${err.code} — ${err.message}\n\n`;
+            }
+
+            text += `📋 สรุป: เช็คได้ ${orders.length - apiErrors.length}/${orders.length} งาน\n`;
+            text += `⏰ เวลา: ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}\n\n`;
+            
+            // แนะนำวิธีแก้
+            const hasQuota = apiErrors.some(e => e.code === 403);
+            const hasRateLimit = apiErrors.some(e => e.code === 429);
+            if (hasQuota) text += `💡 <i>YouTube API quota อาจหมด — รีเซ็ตเที่ยงคืน Pacific Time</i>\n`;
+            if (hasRateLimit) text += `💡 <i>Rate limit — ลองลดจำนวน order หรือรอสักครู่</i>\n`;
+
+            await sendReportBot(REPORT_TOKEN, REPORT_CHAT, text);
+            await env.ADMIN_MONITOR_CACHE.put('last_quota_alert', new Date().toISOString());
+            console.log(`[CRON] Quota alert sent for ${apiErrors.length} errors`);
+          }
+        }
+      } catch (e) {
+        console.error('[CRON] Quota alert error:', e);
+      }
+    }
+
+    console.log(`[CRON] Finished. Completed: ${completedCount}, API Errors: ${apiErrors.length}`);
+    return { success: true, checked: orders.length, completed: completedCount, apiErrors: apiErrors.length };
   } catch (error: any) {
     console.error('[CRON] Error:', error);
     return { success: false, error: error.message };
@@ -782,10 +854,71 @@ async function sendDailyReport(env: Bindings) {
   }
 }
 
+// ============= HEALTH CHECK — ตรวจจับ cron หยุดทำงาน =============
+async function cronHealthCheck(env: Bindings) {
+  const REPORT_TOKEN = env.REPORT_BOT_TOKEN;
+  const REPORT_CHAT = env.REPORT_CHAT_ID;
+  if (!REPORT_TOKEN || !REPORT_CHAT) return;
+
+  try {
+    const lastCheck = await env.ADMIN_MONITOR_CACHE.get('last_cron_check');
+    if (!lastCheck) return; // ยังไม่เคยรัน ไม่ต้องเช็ค
+
+    const lastTime = new Date(lastCheck);
+    const now = new Date();
+    const hoursSinceLast = (now.getTime() - lastTime.getTime()) / 3600000;
+
+    // ถ้า cron ไม่รันเกิน 2 ชม. (ปกติรันทุก 30 นาที)
+    if (hoursSinceLast >= 2) {
+      // เช็คว่าแจ้งเตือน health ไปแล้วหรือยัง (ทุก 2 ชม.)
+      const lastHealthAlert = await env.ADMIN_MONITOR_CACHE.get('last_health_alert');
+      if (lastHealthAlert) {
+        const alertHours = (now.getTime() - new Date(lastHealthAlert).getTime()) / 3600000;
+        if (alertHours < 2) return;
+      }
+
+      const hoursAgo = Math.floor(hoursSinceLast);
+      const minsAgo = Math.round((hoursSinceLast - hoursAgo) * 60);
+
+      let text = `🏥 <b>Cron Health Alert!</b>\n\n`;
+      text += `⚠️ Cron ไม่ได้รันมา <b>${hoursAgo} ชม. ${minsAgo} นาที</b>\n`;
+      text += `📅 รันล่าสุด: ${lastTime.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}\n\n`;
+
+      // ดึง health status ล่าสุด
+      try {
+        const healthStr = await env.ADMIN_MONITOR_CACHE.get('cron_health');
+        if (healthStr) {
+          const health = JSON.parse(healthStr);
+          text += `📊 <b>สถานะรอบล่าสุด:</b>\n`;
+          text += `   ✅ เช็ค: ${health.checked} งาน\n`;
+          text += `   🎉 เสร็จ: ${health.completed} งาน\n`;
+          if (health.errors > 0) text += `   ❌ API errors: ${health.errors}\n`;
+          text += `\n`;
+        }
+      } catch (e) {}
+
+      text += `💡 <i>อาจเกิดจาก:\n`;
+      text += `- Cloudflare Workers มีปัญหา\n`;
+      text += `- Cron trigger ถูกปิด\n`;
+      text += `- Deploy ใหม่แล้ว cron ยังไม่เริ่ม</i>`;
+
+      await sendReportBot(REPORT_TOKEN, REPORT_CHAT, text);
+      await env.ADMIN_MONITOR_CACHE.put('last_health_alert', now.toISOString());
+      console.log(`[HEALTH] Alert sent - cron missing for ${hoursAgo}h ${minsAgo}m`);
+    }
+  } catch (e) {
+    console.error('[HEALTH] Check error:', e);
+  }
+}
+
 // Export with scheduled handler
 export default {
   fetch: app.fetch,
   async scheduled(event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) {
+    // Health check ก่อน — ตรวจว่า cron หายไปนานไหม
+    ctx.waitUntil(cronHealthCheck(env));
+    
+    // เช็ค orders ตามปกติ
     ctx.waitUntil(checkAllOrdersScheduled(env));
     
     // เช็คงานค้างเกิน 48 ชม. ทุกรอบ (แจ้งเตือนทุก 6 ชม.)
