@@ -89,6 +89,7 @@ export function renderIndex(): string {
           <div class="stat-card"><div class="stat-icon c4">📈</div><div class="stat-val" id="stat-rate" style="color:var(--pink)">0%</div><div class="stat-lbl">อัตราสำเร็จ</div></div>
         </div>
         <div class="section-header"><div class="section-title"><span class="live-dot"></span>งานล่าสุด</div><button class="refresh-btn" onclick="refreshOrders()">🔄 รีเฟรช</button></div>
+        <div id="dash-cron-check" class="cron-banner hidden"></div>
         <div id="dash-orders"></div>
       </div>
 

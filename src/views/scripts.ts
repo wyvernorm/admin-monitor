@@ -315,6 +315,7 @@ function switchTab(platform,tab){
 
 async function loadDash(){
   var statsEl=document.querySelector('.stats-row');
+  loadLastCronCheck();
   try{
     var d=await API.monitor.list();
     var orders=d.orders||[];
@@ -403,26 +404,27 @@ async function loadOrders(){
 
 async function loadLastCronCheck(){
   try{
-    var el=document.getElementById('last-cron-check');
-    if(!el)return;
     var d=await API.get('monitor/last-check');
-    if(d&&d.lastCheck){
-      // lastCheck is ISO string (with Z) so browser already converts to local time
-      var lastDate=new Date(d.lastCheck);
-      var timeStr=lastDate.toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-      var now=new Date();
-      var diffMin=Math.round((now.getTime()-lastDate.getTime())/60000);
-      var agoStr='';
-      if(diffMin<1)agoStr='เมื่อสักครู่';
-      else if(diffMin<60)agoStr=diffMin+' นาทีที่แล้ว';
-      else if(diffMin<1440)agoStr=Math.floor(diffMin/60)+' ชม.ที่แล้ว';
-      else agoStr=Math.floor(diffMin/1440)+' วันที่แล้ว';
-      el.innerHTML='🔄 Cron อัพเดทล่าสุด: <strong>'+timeStr+'</strong> <span style="opacity:0.6">('+agoStr+')</span>';
-      el.classList.remove('hidden');
-    }else{
-      el.innerHTML='🔄 Cron ยังไม่เคยรัน';
-      el.classList.remove('hidden');
-    }
+    var els=[document.getElementById('last-cron-check'),document.getElementById('dash-cron-check')];
+    els.forEach(function(el){
+      if(!el)return;
+      if(d&&d.lastCheck){
+        var lastDate=new Date(d.lastCheck);
+        var timeStr=lastDate.toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+        var now=new Date();
+        var diffMin=Math.round((now.getTime()-lastDate.getTime())/60000);
+        var agoStr='';
+        if(diffMin<1)agoStr='เมื่อสักครู่';
+        else if(diffMin<60)agoStr=diffMin+' นาทีที่แล้ว';
+        else if(diffMin<1440)agoStr=Math.floor(diffMin/60)+' ชม.ที่แล้ว';
+        else agoStr=Math.floor(diffMin/1440)+' วันที่แล้ว';
+        el.innerHTML='🔄 Cron อัพเดทล่าสุด: <strong>'+timeStr+'</strong> <span style="opacity:0.6">('+agoStr+')</span>';
+        el.classList.remove('hidden');
+      }else{
+        el.innerHTML='🔄 Cron ยังไม่เคยรัน';
+        el.classList.remove('hidden');
+      }
+    });
   }catch(e){console.log('Failed to load last cron check:',e);}
 }
 
@@ -487,7 +489,7 @@ function getPlatform(url){if(!url)return'youtube';if(url.indexOf('tiktok')>-1)re
 function getPlatformIcon(p){return p==='youtube'?'📺':p==='tiktok'?'🎵':p==='facebook'?'📘':p==='instagram'?'📷':'🌐';}
 function getStatusBadge(s){return s==='done'?'<span class="status-badge done">✅ เสร็จ</span>':s==='running'?'<span class="status-badge running">⏳ กำลังทำ</span>':'<span class="status-badge pending">⏸️ รอ</span>';}
 
-function renderOrders(orders,id){var el=document.getElementById(id);if(!el)return;if(!orders||!orders.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">ไม่พบรายการ</div><div class="empty-desc">'+(id==='orders-list'?'ลองเปลี่ยนตัวกรองหรือค้นหาใหม่':'เพิ่มงานใหม่เพื่อเริ่มติดตาม')+'</div></div>';return;}var h='';orders.forEach(function(o){var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;var vp=vt>0?Math.min(100,Math.round((vc/vt)*100)):0;var lp=lt>0?Math.min(100,Math.round((lc/lt)*100)):0;var time=o.created_at?toThaiTime(o.created_at):'';var updatedTime=o.updated_at?toThaiTime(o.updated_at):'';var plat=getPlatform(o.url);var status=getOrderStatus(o);var createdBy=o.created_by_name||(o.created_by?o.created_by.split('@')[0]:'');h+='<div class="order-card"><div class="order-head"><span class="order-plat">'+getPlatformIcon(plat)+' '+plat.charAt(0).toUpperCase()+plat.slice(1)+'</span>'+getStatusBadge(status)+'<span class="order-time">'+time+'</span></div><div class="order-url"><a href="'+o.url+'" target="_blank" class="order-link">'+o.url+'</a></div><div class="metrics">';if(vt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👀 วิว</span><span class="metric-val">'+fmt(vc)+'/'+fmt(vt)+' ('+vp+'%)</span></div><div class="metric-bar"><div class="metric-fill v" style="width:'+vp+'%"></div></div></div>';if(lt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👍 ไลค์</span><span class="metric-val">'+fmt(lc)+'/'+fmt(lt)+' ('+lp+'%)</span></div><div class="metric-bar"><div class="metric-fill l" style="width:'+lp+'%"></div></div></div>';h+='</div><div class="order-foot">'+(createdBy?'<span class="order-creator">'+createdBy+'</span>':'')+(o.line_id?'<span class="order-line">💬 '+o.line_id+'</span>':'')+(updatedTime?'<span class="order-updated" title="อัพเดทล่าสุดโดย Cron">🔄 '+updatedTime+'</span>':'')+'<button class="del-btn" onclick="delOrder('+o.id+')">🗑️ ลบ</button></div></div>';});el.innerHTML=h;}
+function renderOrders(orders,id){var el=document.getElementById(id);if(!el)return;if(!orders||!orders.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">ไม่พบรายการ</div><div class="empty-desc">'+(id==='orders-list'?'ลองเปลี่ยนตัวกรองหรือค้นหาใหม่':'เพิ่มงานใหม่เพื่อเริ่มติดตาม')+'</div></div>';return;}var now=new Date();var h='';orders.forEach(function(o){var vt=o.view_target||0,vc=o.view_current||0,lt=o.like_target||0,lc=o.like_current||0;var vp=vt>0?Math.min(100,Math.round((vc/vt)*100)):0;var lp=lt>0?Math.min(100,Math.round((lc/lt)*100)):0;var time=o.created_at?toThaiTime(o.created_at):'';var updatedTime=o.updated_at?toThaiTime(o.updated_at):'';var plat=getPlatform(o.url);var status=getOrderStatus(o);var createdBy=o.created_by_name||(o.created_by?o.created_by.split('@')[0]:'');var isStale=false;var staleHours=0;if(status==='running'&&o.created_at){var created=new Date(o.created_at);created.setHours(created.getHours()+7);staleHours=Math.floor((now.getTime()-created.getTime())/3600000);if(staleHours>=48)isStale=true;}var staleBadge='';if(isStale){var staleDays=Math.floor(staleHours/24);staleBadge='<span class="stale-badge">⚠️ ค้างมา '+staleDays+' วัน'+(staleHours%24>0?' '+staleHours%24+' ชม.':'')+'</span>';}h+='<div class="order-card'+(isStale?' order-stale':'')+'"><div class="order-head"><span class="order-plat">'+getPlatformIcon(plat)+' '+plat.charAt(0).toUpperCase()+plat.slice(1)+'</span>'+getStatusBadge(status)+staleBadge+'<span class="order-time">'+time+'</span></div><div class="order-url"><a href="'+o.url+'" target="_blank" class="order-link">'+o.url+'</a></div><div class="metrics">';if(vt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👀 วิว</span><span class="metric-val">'+fmt(vc)+'/'+fmt(vt)+' ('+vp+'%)</span></div><div class="metric-bar"><div class="metric-fill v" style="width:'+vp+'%"></div></div></div>';if(lt>0)h+='<div class="metric"><div class="metric-head"><span class="metric-lbl">👍 ไลค์</span><span class="metric-val">'+fmt(lc)+'/'+fmt(lt)+' ('+lp+'%)</span></div><div class="metric-bar"><div class="metric-fill l" style="width:'+lp+'%"></div></div></div>';h+='</div><div class="order-foot">'+(createdBy?'<span class="order-creator">'+createdBy+'</span>':'')+(o.line_id?'<span class="order-line">💬 '+o.line_id+'</span>':'')+(updatedTime?'<span class="order-updated" title="อัพเดทล่าสุดโดย Cron">🔄 '+updatedTime+'</span>':'')+'<button class="del-btn" onclick="delOrder('+o.id+')">🗑️ ลบ</button></div></div>';});el.innerHTML=h;}
 var deleting={};
 async function delOrder(id){
   if(deleting[id])return;
