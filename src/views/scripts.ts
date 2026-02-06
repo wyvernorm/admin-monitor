@@ -1044,13 +1044,54 @@ async function showUserDetail(emailEnc){
     var stats=d.stats||{};
     var logs=d.logs||[];
     var daily=d.daily||[];
-    var name=email.split('@')[0];
+    var hourly=d.hourly||[];
+    var actions=d.actions||[];
+    var name=nameMap[email]||email.split('@')[0];
     var initial=name.charAt(0).toUpperCase();
     var platColors={youtube:'#ff0000',tiktok:'#00d9ff',facebook:'#1877f2',instagram:'#e1306c',monitor:'#22c55e'};
     var platIcons={youtube:'📺',tiktok:'🎵',facebook:'📘',instagram:'📷',monitor:'🧠'};
+    
+    // Header
     var html='<div class="modal-header"><div class="modal-user"><div class="modal-avatar">'+initial+'</div><div><div class="modal-name">'+name+'</div><div class="modal-email">'+email+'</div></div></div><button class="modal-close" onclick="closeUserModal()">✕</button></div>';
+    
+    // Platform stats
     html+='<div class="modal-stats"><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.total_actions||0)+'</div><div class="modal-stat-lbl">กิจกรรมทั้งหมด</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.youtube_count||0)+'</div><div class="modal-stat-lbl">📺 YouTube</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.tiktok_count||0)+'</div><div class="modal-stat-lbl">🎵 TikTok</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.facebook_count||0)+'</div><div class="modal-stat-lbl">📘 Facebook</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.instagram_count||0)+'</div><div class="modal-stat-lbl">📷 Instagram</div></div></div>';
+    
+    // Action breakdown — กดอะไรไปกี่ครั้ง
+    if(actions.length){
+      html+='<div class="modal-section"><div class="modal-section-title">🎯 กดอะไรไปกี่ครั้ง</div><div class="action-breakdown">';
+      var maxAction=Math.max.apply(null,actions.map(function(a){return a.count;}));
+      actions.forEach(function(a){
+        var cat=a.category||'system';
+        var icon=platIcons[cat]||'📋';
+        var color=platColors[cat]||'#6b7280';
+        var pct=maxAction>0?Math.round((a.count/maxAction)*100):0;
+        var lastUsed=a.last_used?toThaiTime(a.last_used):'';
+        html+='<div class="action-row"><div class="action-info"><span class="action-icon" style="background:'+color+'20;color:'+color+'">'+icon+'</span><span class="action-name">'+a.action+'</span></div><div class="action-bar-wrap"><div class="action-bar" style="width:'+pct+'%;background:'+color+'"></div></div><div class="action-count">'+fmt(a.count)+'<span class="action-last" title="ล่าสุด: '+lastUsed+'">ครั้ง</span></div></div>';
+      });
+      html+='</div></div>';
+    }
+    
+    // Hourly activity chart
+    if(hourly.length){
+      html+='<div class="modal-section"><div class="modal-section-title">⏰ ช่วงเวลาที่ใช้งาน</div><div class="hourly-chart">';
+      var maxH=Math.max.apply(null,hourly.map(function(h){return h.count;}));
+      for(var h=0;h<24;h++){
+        var found=hourly.find(function(x){return x.hour===h;});
+        var count=found?found.count:0;
+        var pct=maxH>0?Math.round((count/maxH)*100):0;
+        var hLabel=h<10?'0'+h:h;
+        var intensity=maxH>0?Math.round((count/maxH)*255):0;
+        var bgColor=count>0?'rgba(139,92,246,'+Math.max(0.15,intensity/255)+')':'rgba(255,255,255,0.03)';
+        html+='<div class="hourly-block" style="background:'+bgColor+'" title="'+hLabel+':00 - '+count+' ครั้ง"><div class="hourly-val">'+(count||'')+'</div><div class="hourly-label">'+hLabel+'</div></div>';
+      }
+      html+='</div></div>';
+    }
+    
+    // Daily chart
     if(daily.length){html+='<div class="modal-section"><div class="modal-section-title">📅 กิจกรรมรายวัน (30 วันล่าสุด)</div><div class="daily-chart">';daily.slice(0,14).forEach(function(day){var max=Math.max.apply(null,daily.map(function(x){return x.count;}));var pct=max>0?Math.round((day.count/max)*100):0;var date=toThaiDate(day.date);html+='<div class="daily-bar-wrap"><div class="daily-bar" style="height:'+pct+'%"></div><div class="daily-val">'+day.count+'</div><div class="daily-date">'+date+'</div></div>';});html+='</div></div>';}
+    
+    // Recent logs
     html+='<div class="modal-section"><div class="modal-section-title">📜 กิจกรรมล่าสุด</div><div class="modal-logs">';
     if(!logs.length)html+='<div class="empty" style="padding:20px">ยังไม่มีกิจกรรม</div>';
     else{logs.slice(0,30).forEach(function(l){var cat=l.category||'system';var icon=platIcons[cat]||'📋';var color=platColors[cat]||'#6b7280';var time=l.created_at?toThaiTime(l.created_at):'';html+='<div class="modal-log-item"><span class="modal-log-icon" style="background:'+color+'20;color:'+color+'">'+icon+'</span><span class="modal-log-action">'+(l.action||'-')+'</span><span class="modal-log-time">'+time+'</span></div>';});}

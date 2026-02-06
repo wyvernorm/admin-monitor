@@ -187,12 +187,27 @@ app.get('/api/logs/user/:email', async (c) => {
       ORDER BY hour
     `).bind(email).all();
     
+    // สถิติแยกตาม action (กดอะไรไปกี่ครั้ง)
+    const actionResult = await db.prepare(`
+      SELECT 
+        action,
+        category,
+        COUNT(*) as count,
+        MAX(created_at) as last_used
+      FROM activity_logs 
+      WHERE admin_email = ?
+      GROUP BY action, category
+      ORDER BY count DESC
+      LIMIT 30
+    `).bind(email).all();
+    
     return c.json({ 
       email,
       logs: logsResult.results || [],
       stats: (statsResult.results || [])[0] || {},
       daily: dailyResult.results || [],
-      hourly: hourlyResult.results || []
+      hourly: hourlyResult.results || [],
+      actions: actionResult.results || []
     });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
