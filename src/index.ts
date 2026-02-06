@@ -37,6 +37,16 @@ app.use('*', cors({
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
 
+// Unicode-safe Base64 decode (same as auth.ts)
+function base64Decode(base64: string): string {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return new TextDecoder().decode(bytes);
+}
+
 // Auth middleware - Check session for API access
 app.use('/api/*', async (c, next) => {
   const path = c.req.path;
@@ -54,7 +64,7 @@ app.use('/api/*', async (c, next) => {
   }
   
   try {
-    const session = JSON.parse(atob(sessionToken));
+    const session = JSON.parse(base64Decode(sessionToken));
     
     // Check expiration
     if (session.exp < Date.now()) {
@@ -223,7 +233,7 @@ app.post('/api/log-action', async (c) => {
     const sessionToken = c.req.header('X-Session-Token') || getCookie(c, 'session');
     if (sessionToken) {
       try {
-        const session = JSON.parse(atob(sessionToken));
+        const session = JSON.parse(base64Decode(sessionToken));
         if (userEmail === 'unknown') userEmail = session.email || 'unknown';
         userName = session.name || '';
       } catch (e) {}
@@ -247,7 +257,7 @@ app.get('/api/team', async (c) => {
     const sessionToken = getCookie(c, 'session');
     let currentEmail = '';
     if (sessionToken) {
-      try { currentEmail = JSON.parse(atob(sessionToken)).email; } catch(e) {}
+      try { currentEmail = JSON.parse(base64Decode(sessionToken)).email; } catch(e) {}
     }
     
     // ตรวจสอบว่าเป็น admin ไหม
@@ -280,7 +290,7 @@ app.post('/api/team/invite', async (c) => {
     const sessionToken = getCookie(c, 'session');
     let inviterEmail = '';
     if (sessionToken) {
-      try { inviterEmail = JSON.parse(atob(sessionToken)).email; } catch(e) {}
+      try { inviterEmail = JSON.parse(base64Decode(sessionToken)).email; } catch(e) {}
     }
     
     // ตรวจสอบว่าเป็น admin
@@ -307,7 +317,7 @@ app.post('/api/team/update-role', async (c) => {
     const sessionToken = getCookie(c, 'session');
     let currentEmail = '';
     if (sessionToken) {
-      try { currentEmail = JSON.parse(atob(sessionToken)).email; } catch(e) {}
+      try { currentEmail = JSON.parse(base64Decode(sessionToken)).email; } catch(e) {}
     }
     
     const current = await db.prepare('SELECT role FROM team_members WHERE email = ?').bind(currentEmail).first();
@@ -329,7 +339,7 @@ app.delete('/api/team/:email', async (c) => {
     const sessionToken = getCookie(c, 'session');
     let currentEmail = '';
     if (sessionToken) {
-      try { currentEmail = JSON.parse(atob(sessionToken)).email; } catch(e) {}
+      try { currentEmail = JSON.parse(base64Decode(sessionToken)).email; } catch(e) {}
     }
     
     const current = await db.prepare('SELECT role FROM team_members WHERE email = ?').bind(currentEmail).first();
@@ -543,6 +553,19 @@ async function checkAllOrdersScheduled(env: Bindings) {
       await env.ADMIN_MONITOR_CACHE.put('last_cron_check', new Date().toISOString());
     } catch (e) {
       console.error('[CRON] Failed to save last check time:', e);
+    }
+
+    // Cleanup old snapshots (older than 30 days)
+    try {
+      const cleanup = await db.prepare(`
+        DELETE FROM order_snapshots 
+        WHERE checked_at < datetime('now', '-30 days')
+      `).run();
+      if (cleanup.meta.changes > 0) {
+        console.log(`[CRON] Cleaned up ${cleanup.meta.changes} old snapshots`);
+      }
+    } catch (e) {
+      console.error('[CRON] Snapshot cleanup error:', e);
     }
 
     console.log(`[CRON] Finished. Completed: ${completedCount}`);
