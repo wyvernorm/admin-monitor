@@ -21,6 +21,7 @@ type Bindings = {
   APIFY2_TOKEN: string;
   APIFY3_TOKEN: string;
   ENSEMBLE_TOKEN: string;
+  ENSEMBLE_IG_TOKEN: string;
   RAPIDAPI_KEY: string;
   TELEGRAM_BOT_TOKEN: string;
   TELEGRAM_GROUP_ID: string;
