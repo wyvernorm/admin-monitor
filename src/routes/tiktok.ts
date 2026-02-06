@@ -185,6 +185,26 @@ async function apifyUserInfo(username: string, token: string): Promise<TiktokUse
   }
 }
 
+// ============= SMART CACHE CONFIG =============
+// Ensemble แพง (2 units/call) → cache นานขึ้น 30 นาที
+// Apify ช้าแต่ถูกกว่า → cache 10 นาที
+const CACHE_TTL_ENSEMBLE = 1800; // 30 นาที
+const CACHE_TTL_APIFY = 600;    // 10 นาที
+
+// Log API source ไป KV (ไม่ block response)
+async function logApiSource(cache: KVNamespace | undefined, platform: string, endpoint: string, source: string, responseTime: number) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const logKey = `api_source_log_${today}`;
+    const existing = await cache?.get(logKey);
+    const logs: any[] = existing ? JSON.parse(existing) : [];
+    logs.push({ platform, endpoint, source, responseTime, timestamp: new Date().toISOString() });
+    await cache?.put(logKey, JSON.stringify(logs), { expirationTtl: 604800 });
+  } catch (e) {
+    console.error('[LogSource] Error:', e);
+  }
+}
+
 // ============= SMART FETCH: Ensemble ก่อน → Apify ถ้าล้มเหลว =============
 
 async function smartFetchPost(url: string, ensembleToken: string, apifyToken: string): Promise<{ stats: TiktokStats; source: string } | null> {
@@ -237,10 +257,18 @@ tiktokRoutes.post('/stats', async (c) => {
     if (cached) return c.json({ ...JSON.parse(cached), fromCache: true, url: fullUrl });
 
     // Smart fetch
+    const startTime = Date.now();
     const result = await smartFetchPost(fullUrl, ensembleToken, apifyToken);
     if (!result) return c.json({ error: 'ไม่สามารถดึงข้อมูลได้ ลองใหม่อีกครั้ง' }, 500);
+    const elapsed = Date.now() - startTime;
 
-    await cache?.put(cacheKey, JSON.stringify(result.stats), { expirationTtl: 300 });
+    // Smart cache: Ensemble แพง → cache นาน, Apify ถูก → cache สั้น
+    const ttl = result.source === 'ensemble' ? CACHE_TTL_ENSEMBLE : CACHE_TTL_APIFY;
+    await cache?.put(cacheKey, JSON.stringify(result.stats), { expirationTtl: ttl });
+
+    // Log source (non-blocking)
+    logApiSource(cache, 'tiktok', '/stats', result.source, elapsed);
+
     return c.json({ stats: result.stats, url: fullUrl, source: result.source });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
@@ -265,10 +293,15 @@ tiktokRoutes.post('/follower', async (c) => {
     const cached = await cache?.get(cacheKey);
     if (cached) return c.json({ ...JSON.parse(cached), fromCache: true });
 
+    const startTime = Date.now();
     const result = await smartFetchUser(username, ensembleToken, apifyToken);
     if (!result) return c.json({ error: 'ไม่พบข้อมูลผู้ใช้' }, 404);
+    const elapsed = Date.now() - startTime;
 
-    await cache?.put(cacheKey, JSON.stringify(result.user), { expirationTtl: 300 });
+    const ttl = result.source === 'ensemble' ? CACHE_TTL_ENSEMBLE : CACHE_TTL_APIFY;
+    await cache?.put(cacheKey, JSON.stringify(result.user), { expirationTtl: ttl });
+    logApiSource(cache, 'tiktok', '/follower', result.source, elapsed);
+
     return c.json({ ...result.user, source: result.source });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
@@ -300,7 +333,7 @@ tiktokRoutes.post('/summary', async (c) => {
         const result = await smartFetchPost(fullUrl, ensembleToken, apifyToken);
         if (result) {
           stats = result.stats;
-          await cache?.put(cacheKey, JSON.stringify(stats), { expirationTtl: 300 });
+          await cache?.put(cacheKey, JSON.stringify(stats), { expirationTtl: CACHE_TTL_ENSEMBLE });
         }
       }
 
@@ -351,7 +384,7 @@ tiktokRoutes.post('/summary-all', async (c) => {
         const result = await smartFetchPost(fullUrl, ensembleToken, apifyToken);
         if (result) {
           stats = result.stats;
-          await cache?.put(cacheKey, JSON.stringify(stats), { expirationTtl: 300 });
+          await cache?.put(cacheKey, JSON.stringify(stats), { expirationTtl: CACHE_TTL_ENSEMBLE });
         }
       }
 
@@ -409,7 +442,7 @@ tiktokRoutes.post('/follower-summary', async (c) => {
         const result = await smartFetchUser(username, ensembleToken, apifyToken);
         if (result) {
           followerData = result.user;
-          await cache?.put(cacheKey, JSON.stringify(followerData), { expirationTtl: 300 });
+          await cache?.put(cacheKey, JSON.stringify(followerData), { expirationTtl: CACHE_TTL_ENSEMBLE });
         }
       }
 

@@ -45,6 +45,24 @@ type IgProfileStats = {
   profileUrl: string;
 };
 
+// ============= SMART CACHE CONFIG =============
+const CACHE_TTL_ENSEMBLE = 1800; // 30 นาที (ประหยัด units)
+const CACHE_TTL_APIFY = 600;    // 10 นาที
+const CACHE_TTL_PROFILE = 1800; // Profile cache 30 นาที
+
+async function logApiSource(cache: KVNamespace | undefined, platform: string, endpoint: string, source: string, responseTime: number) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const logKey = `api_source_log_${today}`;
+    const existing = await cache?.get(logKey);
+    const logs: any[] = existing ? JSON.parse(existing) : [];
+    logs.push({ platform, endpoint, source, responseTime, timestamp: new Date().toISOString() });
+    await cache?.put(logKey, JSON.stringify(logs), { expirationTtl: 604800 });
+  } catch (e) {
+    console.error('[LogSource] Error:', e);
+  }
+}
+
 // ============= ENSEMBLEDATA API =============
 // Endpoint ใช้ shortcode (code) ไม่ใช่ URL
 // Response structure (ทดสอบแล้ว):
@@ -244,11 +262,15 @@ async function getInstagramPostStats(url: string, ensembleToken: string, apifyTo
   const cached = await cache?.get(cacheKey);
   if (cached) return c.json({ ...JSON.parse(cached), fromCache: true, url });
 
+  const startTime = Date.now();
   const result = await smartFetchPost(url, shortcode, ensembleToken, apifyToken);
   if (!result) return c.json({ error: 'ไม่พบข้อมูลโพสต์ - อาจเป็นโพสต์ส่วนตัว' }, 404);
+  const elapsed = Date.now() - startTime;
 
   const data = { type: 'post', stats: result.stats };
-  await cache?.put(cacheKey, JSON.stringify(data), { expirationTtl: 300 });
+  const ttl = result.source === 'ensemble' ? CACHE_TTL_ENSEMBLE : CACHE_TTL_APIFY;
+  await cache?.put(cacheKey, JSON.stringify(data), { expirationTtl: ttl });
+  logApiSource(cache, 'instagram', '/stats-post', result.source, elapsed);
 
   return c.json({ ...data, url, source: result.source });
 }
@@ -261,11 +283,14 @@ async function getInstagramProfileStats(url: string, ensembleToken: string, apif
   const cached = await cache?.get(cacheKey);
   if (cached) return c.json({ ...JSON.parse(cached), fromCache: true });
 
+  const startTime = Date.now();
   const result = await smartFetchUser(username, ensembleToken, apifyToken);
   if (!result) return c.json({ error: 'ไม่พบข้อมูลผู้ใช้' }, 404);
+  const elapsed = Date.now() - startTime;
 
   const data = { type: 'profile', ...result.user };
-  await cache?.put(cacheKey, JSON.stringify(data), { expirationTtl: 1800 });
+  await cache?.put(cacheKey, JSON.stringify(data), { expirationTtl: CACHE_TTL_PROFILE });
+  logApiSource(cache, 'instagram', '/stats-profile', result.source, elapsed);
 
   return c.json({ ...data, source: result.source });
 }

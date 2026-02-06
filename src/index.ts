@@ -445,6 +445,151 @@ app.get('/api/analytics', async (c) => {
   }
 });
 
+// ============= 1. ENSEMBLE QUOTA MONITOR =============
+// ดูเครดิตคงเหลือ EnsembleData (ฟรี 0 units)
+app.get('/api/ensemble-quota', async (c) => {
+  try {
+    const tokens = {
+      tiktok: { token: c.env.ENSEMBLE_TOKEN, label: 'TikTok' },
+      instagram: { token: c.env.ENSEMBLE_IG_TOKEN, label: 'Instagram' },
+    };
+
+    const results: any = {};
+
+    for (const [key, { token, label }] of Object.entries(tokens)) {
+      if (!token) {
+        results[key] = { label, error: 'Token not set' };
+        continue;
+      }
+
+      try {
+        // ดึง usage วันนี้
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const usageRes = await fetch(
+          `https://ensembledata.com/apis/customer/get-used-units?date=${today}&token=${token}`
+        );
+        const usageData = await usageRes.json() as any;
+
+        // ดึง history 7 วัน
+        const historyRes = await fetch(
+          `https://ensembledata.com/apis/customer/get-history?days=7&token=${token}`
+        );
+        const historyData = await historyRes.json() as any;
+
+        results[key] = {
+          label,
+          todayUsed: usageData?.data?.used_units ?? usageData?.data ?? 0,
+          dailyLimit: 50, // Free tier
+          remaining: 50 - (usageData?.data?.used_units ?? usageData?.data ?? 0),
+          history: historyData?.data || [],
+        };
+      } catch (e: any) {
+        results[key] = { label, error: e.message };
+      }
+    }
+
+    return c.json(results);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ============= 2. API SOURCE LOG =============
+// บันทึก & ดึงสถิติว่าใช้ ensemble vs apify กี่ครั้ง
+app.post('/api/log-api-source', async (c) => {
+  try {
+    const { platform, endpoint, source, responseTime } = await c.req.json();
+    const db = c.env.DB;
+    const cache = c.env.ADMIN_MONITOR_CACHE;
+
+    // บันทึกลง KV (ใช้ KV เพราะไม่อยาก alter DB table)
+    const today = new Date().toISOString().split('T')[0];
+    const logKey = `api_source_log_${today}`;
+    
+    const existing = await cache?.get(logKey);
+    const logs: any[] = existing ? JSON.parse(existing) : [];
+    
+    logs.push({
+      platform,
+      endpoint,
+      source, // 'ensemble' | 'apify'
+      responseTime,
+      timestamp: new Date().toISOString(),
+    });
+
+    // เก็บ log วันนี้ไว้ 7 วัน
+    await cache?.put(logKey, JSON.stringify(logs), { expirationTtl: 604800 });
+
+    return c.json({ success: true });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+app.get('/api/api-source-stats', async (c) => {
+  try {
+    const cache = c.env.ADMIN_MONITOR_CACHE;
+    const days = Number(c.req.query('days') || '7');
+    
+    const stats: any = {
+      daily: [],
+      totals: { ensemble: 0, apify: 0, total: 0 },
+      byPlatform: {},
+    };
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const logKey = `api_source_log_${dateStr}`;
+      
+      const data = await cache?.get(logKey);
+      const logs: any[] = data ? JSON.parse(data) : [];
+      
+      const dayStat = {
+        date: dateStr,
+        ensemble: 0,
+        apify: 0,
+        total: logs.length,
+        avgResponseTime: { ensemble: 0, apify: 0 },
+      };
+
+      let ensembleTimes: number[] = [];
+      let apifyTimes: number[] = [];
+
+      for (const log of logs) {
+        if (log.source === 'ensemble') {
+          dayStat.ensemble++;
+          stats.totals.ensemble++;
+          if (log.responseTime) ensembleTimes.push(log.responseTime);
+        } else {
+          dayStat.apify++;
+          stats.totals.apify++;
+          if (log.responseTime) apifyTimes.push(log.responseTime);
+        }
+
+        // By platform
+        if (!stats.byPlatform[log.platform]) {
+          stats.byPlatform[log.platform] = { ensemble: 0, apify: 0 };
+        }
+        stats.byPlatform[log.platform][log.source]++;
+      }
+
+      dayStat.avgResponseTime.ensemble = ensembleTimes.length > 0 
+        ? Math.round(ensembleTimes.reduce((a, b) => a + b, 0) / ensembleTimes.length) : 0;
+      dayStat.avgResponseTime.apify = apifyTimes.length > 0
+        ? Math.round(apifyTimes.reduce((a, b) => a + b, 0) / apifyTimes.length) : 0;
+
+      stats.daily.push(dayStat);
+      stats.totals.total += logs.length;
+    }
+
+    return c.json(stats);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
 // Main page
 app.get('/', (c) => {
   return c.html(renderIndex());
