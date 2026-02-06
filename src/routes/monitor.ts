@@ -191,6 +191,23 @@ monitorRoutes.post('/check-all', async (c) => {
     const TG_TOKEN = c.env.TELEGRAM_BOT_TOKEN;
     const TG_GROUP = c.env.TELEGRAM_GROUP_ID;
 
+    // Cooldown 5 นาที ป้องกันกดซ้ำ
+    const kv = c.env.ADMIN_MONITOR_CACHE;
+    const lastManualCheck = await kv.get('last_manual_check');
+    if (lastManualCheck) {
+      const elapsed = (Date.now() - new Date(lastManualCheck).getTime()) / 1000;
+      const remaining = Math.ceil(300 - elapsed);
+      if (remaining > 0) {
+        const mins = Math.floor(remaining / 60);
+        const secs = remaining % 60;
+        return c.json({ 
+          error: `กรุณารออีก ${mins} นาที ${secs} วินาที`, 
+          cooldown: remaining 
+        }, 429);
+      }
+    }
+    await kv.put('last_manual_check', new Date().toISOString());
+
     const result = await db.prepare(`
       SELECT * FROM orders 
       WHERE status = 'running' AND notified != 'yes'

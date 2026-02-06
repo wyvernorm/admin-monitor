@@ -114,7 +114,7 @@ export function renderIndex(): string {
             <div id="m-status" class="status-box hidden"></div>
           </div>
           <div>
-            <div class="section-header"><div class="section-title"><span class="live-dot"></span>รายการงาน</div><button class="refresh-btn" onclick="refreshOrders()">🔄 รีเฟรช</button></div>
+            <div class="section-header"><div class="section-title"><span class="live-dot"></span>รายการงาน</div><div class="section-actions"><button class="check-now-btn" id="check-now-btn" onclick="handleCheckNow()">⚡ ตรวจสอบตอนนี้</button><button class="refresh-btn" onclick="refreshOrders()">🔄 รีเฟรช</button></div></div>
             <div id="last-cron-check" class="cron-banner hidden"></div>
             <div class="filter-bar">
               <div class="search-box"><span class="search-icon">🔍</span><input id="order-search" placeholder="ค้นหา URL, LINE ID..." oninput="filterOrders()"/></div>

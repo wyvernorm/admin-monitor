@@ -344,6 +344,43 @@ async function logActivity(action,category,details){try{var email=user?user.emai
 // Refresh functions with toast
 async function refreshDashboard(){toast('🔄 กำลังรีเฟรช...');await loadDash();await loadOrders();toast('✅ รีเฟรชเรียบร้อย!');}
 async function refreshOrders(){toast('🔄 กำลังรีเฟรช...');await loadOrders();toast('✅ รีเฟรชเรียบร้อย!');}
+
+var checkNowTimer=null;
+async function handleCheckNow(){
+  var btn=document.getElementById('check-now-btn');
+  if(!btn||btn.disabled)return;
+  btn.disabled=true;
+  btn.textContent='⏳ กำลังตรวจสอบ...';
+  try{
+    var res=await fetch('/api/monitor/check-all',{method:'POST',headers:{'X-Session-Token':localStorage.getItem('session')}});
+    var d=await res.json();
+    if(d.error){
+      toast('⏳ '+d.error,'error');
+      if(d.cooldown)startCheckCooldown(d.cooldown);
+      else{btn.disabled=false;btn.textContent='⚡ ตรวจสอบตอนนี้';}
+      return;
+    }
+    toast('✅ '+d.message);
+    startCheckCooldown(300);
+    await loadOrders();await loadDash();
+    await logActivity('ตรวจสอบงานทั้งหมด','monitor',{checked:d.message});
+  }catch(e){toast('❌ '+e.message,'error');btn.disabled=false;btn.textContent='⚡ ตรวจสอบตอนนี้';}
+}
+function startCheckCooldown(secs){
+  var btn=document.getElementById('check-now-btn');
+  if(!btn)return;
+  btn.disabled=true;
+  if(checkNowTimer)clearInterval(checkNowTimer);
+  var remaining=secs;
+  function update(){
+    if(remaining<=0){clearInterval(checkNowTimer);btn.disabled=false;btn.textContent='⚡ ตรวจสอบตอนนี้';return;}
+    var m=Math.floor(remaining/60),s=remaining%60;
+    btn.textContent='⏳ รออีก '+m+':'+('0'+s).slice(-2);
+    remaining--;
+  }
+  update();
+  checkNowTimer=setInterval(update,1000);
+}
 async function refreshLogs(){toast('🔄 กำลังรีเฟรช...');await loadLogs();toast('✅ รีเฟรชเรียบร้อย!');}
 
 var isSubmitting=false;
