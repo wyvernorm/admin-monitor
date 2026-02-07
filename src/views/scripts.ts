@@ -4,9 +4,9 @@ var user=null,lastYT=null,NL=String.fromCharCode(10),usedFB=[],usedIG=[],current
 var prevRanks={},earnedBadges=(function(){try{return JSON.parse(localStorage.getItem('earnedBadges')||'[]');}catch(e){return [];}})();
 
 // Avatar helper: show Google profile picture if available, else initial letter
-function avatarHtml(email,initial,cssClass){
+function avatarHtml(email,initial){
   var pic=pictureMap[email];
-  if(pic)return '<img src="'+pic+'" class="'+(cssClass||'')+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" referrerpolicy="no-referrer" onerror="this.parentNode.textContent=\\''+initial+'\\'">';
+  if(pic)return '<img src="'+pic+'" style="width:100%;height:100%;object-fit:cover;" referrerpolicy="no-referrer" onerror="this.style.display=\\'none\\';this.parentNode.textContent=\\''+initial+'\\'">';
   return initial;
 }
 
@@ -935,9 +935,9 @@ async function loadLogs(){
     });
     document.getElementById('platform-stats').innerHTML=platHtml;
     
-    // Build name map + picture map: use latest clean data per email
+    // Build name map + picture map
     nameMap={};
-    pictureMap={};
+    pictureMap=d.pictureMap||{};
     allLogs.forEach(function(l){
       if(!l.admin_email)return;
       var n=l.admin_name||'';
@@ -945,6 +945,8 @@ async function loadLogs(){
       if(n&&!nameMap[l.admin_email])nameMap[l.admin_email]=n;
       if(l.admin_picture&&!pictureMap[l.admin_email])pictureMap[l.admin_email]=l.admin_picture;
     });
+    // Also add current user's picture
+    if(user&&user.email&&user.picture)pictureMap[user.email]=user.picture;
     
     // Leaderboard with Gamification + Rank Animation
     var lbHtml='';

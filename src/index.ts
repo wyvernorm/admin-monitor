@@ -82,6 +82,17 @@ app.get('/api/logs', async (c) => {
   try {
     const db = c.env.DB;
     
+    // Auto-backfill: อัปเดต admin_picture ของ user ที่ login อยู่ลง log เก่าที่ยังไม่มีรูป
+    const currentUser = c.get('user') as any;
+    if (currentUser?.email && currentUser?.picture) {
+      try {
+        await db.prepare(`
+          UPDATE activity_logs SET admin_picture = ?
+          WHERE admin_email = ? AND (admin_picture IS NULL OR admin_picture = '')
+        `).bind(currentUser.picture, currentUser.email).run();
+      } catch (e) { /* ignore backfill errors */ }
+    }
+    
     // ดึง logs ล่าสุด 500 รายการ
     const logsResult = await db.prepare(`
       SELECT * FROM activity_logs 
@@ -104,12 +115,21 @@ app.get('/api/logs', async (c) => {
       ORDER BY total_actions DESC
     `).all();
     
+    // สร้าง pictureMap จาก logs ที่มี admin_picture (ล่าสุดต่อ email)
+    const pictureMap: Record<string, string> = {};
+    for (const log of (logsResult.results || []) as any[]) {
+      if (log.admin_picture && log.admin_email && !pictureMap[log.admin_email]) {
+        pictureMap[log.admin_email] = log.admin_picture;
+      }
+    }
+    
     return c.json({ 
       logs: logsResult.results || [],
-      stats: statsResult.results || []
+      stats: statsResult.results || [],
+      pictureMap,
     });
   } catch (error: any) {
-    return c.json({ error: error.message, logs: [], stats: [] }, 500);
+    return c.json({ error: error.message, logs: [], stats: [], pictureMap: {} }, 500);
   }
 });
 
