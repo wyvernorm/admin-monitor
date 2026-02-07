@@ -633,7 +633,7 @@ app.get('/static/app.css', (c) => {
 });
 
 app.get('/static/app.js', (c) => {
-  const js = scriptContent.replace(/^<script>\n?/, '').replace(/<\/script>$/, '');
+  const js = scriptContent.replace(/^\s*<script>\s*/, '').replace(/\s*<\/script>\s*$/, '');
   c.header('Content-Type', 'application/javascript; charset=utf-8');
   c.header('Cache-Control', 'public, max-age=300');
   return c.body(js);
