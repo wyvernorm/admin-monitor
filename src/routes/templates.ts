@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { getCookie } from 'hono/cookie';
-import type { Bindings } from '../types';
+import type { Bindings, Variables } from '../types';
 
-export const templateRoutes = new Hono<{ Bindings: Bindings }>();
+export const templateRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // ============= GET ALL TEMPLATES =============
 templateRoutes.get('/', async (c) => {

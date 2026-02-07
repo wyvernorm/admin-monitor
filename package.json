@@ -1,9 +1,11 @@
 {
   "name": "admin-monitor",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "hono": "^4.0.0"
@@ -11,6 +13,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240117.0",
     "typescript": "^5.3.3",
+    "vitest": "^1.6.0",
     "wrangler": "^3.24.0"
   }
 }

@@ -24,9 +24,9 @@ import {
 } from './utils';
 
 // Shared types
-import type { Bindings } from './types';
+import type { Bindings, Variables } from './types';
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // CORS - จำกัดเฉพาะ domain ที่ใช้จริง
 app.use('*', cors({
@@ -620,6 +620,23 @@ app.get('/api/api-source-stats', async (c) => {
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
+});
+
+// ============= STATIC ASSETS (CSS/JS แยกไฟล์ — ง่ายต่อ debug & browser cache) =============
+import { styles } from './views/styles';
+import { scripts as scriptContent } from './views/scripts';
+
+app.get('/static/app.css', (c) => {
+  c.header('Content-Type', 'text/css; charset=utf-8');
+  c.header('Cache-Control', 'public, max-age=300');
+  return c.body(styles);
+});
+
+app.get('/static/app.js', (c) => {
+  const js = scriptContent.replace(/^<script>\n?/, '').replace(/<\/script>$/, '');
+  c.header('Content-Type', 'application/javascript; charset=utf-8');
+  c.header('Cache-Control', 'public, max-age=300');
+  return c.body(js);
 });
 
 // Main page

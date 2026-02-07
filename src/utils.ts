@@ -1,6 +1,8 @@
 // ============= SHARED UTILITIES =============
 // Centralized helpers used across routes and index
 
+import type { SessionUser } from './types';
+
 // ---------- Video ID Extraction ----------
 export function extractVideoId(url: string): string | null {
   if (url.includes('watch?v=')) return url.split('watch?v=')[1].split('&')[0];
@@ -85,7 +87,7 @@ export async function createSessionToken(payload: object, secret: string): Promi
  * Verify และ decode session token
  * คืน parsed payload หรือ null ถ้า invalid/expired
  */
-export async function verifySessionToken(token: string, secret: string): Promise<any | null> {
+export async function verifySessionToken(token: string, secret: string): Promise<SessionUser | null> {
   try {
     const parts = token.split('.');
     if (parts.length !== 2) return null;
@@ -118,7 +120,7 @@ export async function verifySessionToken(token: string, secret: string): Promise
  * Backward-compatible: ลอง verify HMAC ก่อน ถ้าไม่ได้ลอง decode แบบเก่า (unsigned base64)
  * ใช้ช่วง transition ให้ session เก่ายังใช้ได้
  */
-export async function verifySessionTokenCompat(token: string, secret: string): Promise<any | null> {
+export async function verifySessionTokenCompat(token: string, secret: string): Promise<SessionUser | null> {
   // Try new signed format first
   const signed = await verifySessionToken(token, secret);
   if (signed) return signed;

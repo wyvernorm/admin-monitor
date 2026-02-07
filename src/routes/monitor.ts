@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { extractVideoId, sendTelegramNotification } from '../utils';
-import type { Bindings } from '../types';
+import type { Bindings, Variables } from '../types';
 
-export const monitorRoutes = new Hono<{ Bindings: Bindings }>();
+export const monitorRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // ============= HELPER FUNCTIONS =============
 

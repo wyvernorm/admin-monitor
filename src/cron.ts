@@ -1,11 +1,11 @@
 // ============= CRON / SCHEDULED HANDLERS =============
 // แยกจาก index.ts เพื่อให้โค้ดสะอาดขึ้น
 
-import type { Bindings } from './types';
+import type { Bindings, Order, ApiError, CronResult } from './types';
 import { extractVideoId, sendTelegramNotification, sendReportBot } from './utils';
 
 // ============= CHECK ALL ORDERS (ทุก 30 นาที) =============
-export async function checkAllOrdersScheduled(env: Bindings) {
+export async function checkAllOrdersScheduled(env: Bindings): Promise<CronResult> {
   const db = env.DB;
   const API_KEY = env.YOUTUBE_API_KEY;
   const TG_TOKEN = env.TELEGRAM_BOT_TOKEN;
@@ -18,11 +18,11 @@ export async function checkAllOrdersScheduled(env: Bindings) {
       SELECT * FROM orders WHERE status = 'running'
     `).all();
 
-    const orders = result.results || [];
+    const orders = (result.results || []) as Order[];
     console.log(`[CRON] Found ${orders.length} running orders`);
 
     let completedCount = 0;
-    let apiErrors: { platform: string; code: number; message: string }[] = [];
+    const apiErrors: ApiError[] = [];
 
     for (const order of orders) {
       try {
@@ -199,7 +199,7 @@ export async function checkStaleOrders(env: Bindings) {
       AND created_at < datetime('now', '-48 hours')
     `).all();
 
-    const staleOrders = result.results || [];
+    const staleOrders = (result.results || []) as Order[];
     if (staleOrders.length === 0) return;
 
     const lastStaleAlert = await env.ADMIN_MONITOR_CACHE.get('last_stale_alert');
@@ -214,7 +214,7 @@ export async function checkStaleOrders(env: Bindings) {
     let text = `⚠️ <b>งานค้างเกิน 48 ชั่วโมง!</b>\n`;
     text += `📋 พบ <b>${staleOrders.length}</b> งานที่ยังไม่เสร็จ\n\n`;
 
-    for (const order of staleOrders as any[]) {
+    for (const order of staleOrders) {
       const created = new Date(order.created_at);
       created.setHours(created.getHours() + 7);
       const hoursAgo = Math.floor((now.getTime() - created.getTime()) / 3600000);
@@ -258,9 +258,9 @@ export async function sendDailyReport(env: Bindings) {
     const lastReport = await env.ADMIN_MONITOR_CACHE.get('last_daily_report');
     if (lastReport === today) return;
 
-    const running = await db.prepare("SELECT COUNT(*) as c FROM orders WHERE status = 'running'").first() as any;
-    const done = await db.prepare("SELECT COUNT(*) as c FROM orders WHERE status = 'done'").first() as any;
-    const stale = await db.prepare("SELECT COUNT(*) as c FROM orders WHERE status = 'running' AND created_at < datetime('now', '-48 hours')").first() as any;
+    const running = await db.prepare("SELECT COUNT(*) as c FROM orders WHERE status = 'running'").first<{ c: number }>();
+    const done = await db.prepare("SELECT COUNT(*) as c FROM orders WHERE status = 'done'").first<{ c: number }>();
+    const stale = await db.prepare("SELECT COUNT(*) as c FROM orders WHERE status = 'running' AND created_at < datetime('now', '-48 hours')").first<{ c: number }>();
     const nearComplete = await db.prepare(`
       SELECT COUNT(*) as c FROM orders WHERE status = 'running'
       AND (
@@ -269,27 +269,27 @@ export async function sendDailyReport(env: Bindings) {
         OR (view_target > 0 AND like_target = 0 AND CAST(view_current AS REAL)/view_target >= 0.9)
         OR (view_target = 0 AND like_target > 0 AND CAST(like_current AS REAL)/like_target >= 0.9)
       )
-    `).first() as any;
+    `).first<{ c: number }>();
 
     const completedYesterday = await db.prepare(`
       SELECT COUNT(*) as c FROM orders 
       WHERE status = 'done' AND completed_at >= datetime('now', '-24 hours')
-    `).first() as any;
+    `).first<{ c: number }>();
 
     const addedYesterday = await db.prepare(`
       SELECT COUNT(*) as c FROM orders 
       WHERE created_at >= datetime('now', '-24 hours')
-    `).first() as any;
+    `).first<{ c: number }>();
 
     const todayLogs = await db.prepare(`
       SELECT COUNT(*) as c FROM activity_logs 
       WHERE created_at >= datetime('now', '-24 hours')
-    `).first() as any;
+    `).first<{ c: number }>();
 
     const activeUsers = await db.prepare(`
       SELECT COUNT(DISTINCT admin_email) as c FROM activity_logs 
       WHERE created_at >= datetime('now', '-24 hours')
-    `).first() as any;
+    `).first<{ c: number }>();
 
     const thaiDate = new Date();
     thaiDate.setHours(thaiDate.getHours() + 7);

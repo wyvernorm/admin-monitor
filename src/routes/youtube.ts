@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { extractVideoId, extractChannelId, isChannelUrl } from '../utils';
-import type { Bindings } from '../types';
+import type { Bindings, Variables } from '../types';
 
-export const youtubeRoutes = new Hono<{ Bindings: Bindings }>();
+export const youtubeRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // ============= GET VIDEO STATS =============
 youtubeRoutes.post('/stats', async (c) => {

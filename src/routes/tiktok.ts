@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
-import type { Bindings } from '../types';
+import type { Bindings, Variables } from '../types';
 
-export const tiktokRoutes = new Hono<{ Bindings: Bindings }>();
+export const tiktokRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // ============= HELPER FUNCTIONS =============
 

@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
 import { createSessionToken, verifySessionTokenCompat, generateCsrfToken } from '../utils';
-import type { Bindings } from '../types';
+import type { Bindings, Variables } from '../types';
 
-export const authRoutes = new Hono<{ Bindings: Bindings }>();
+export const authRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 const REDIRECT_URI = 'https://admin-monitor.iplusview.workers.dev/api/auth/callback';
 const ALLOWED_EMAILS = [
