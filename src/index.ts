@@ -699,35 +699,36 @@ app.get('/api/public/monitor-stats', async (c) => {
 
   try {
     const db = c.env.DB;
-    const days = Math.min(Math.max(Number(c.req.query('days') || '7'), 1), 90);
+    const daysParam = c.req.query('days') || '7';
+    const isAll = daysParam.toLowerCase() === 'all';
+    const days = isAll ? null : Math.min(Math.max(Number(daysParam), 1), 9999);
     
-    // นับจำนวนครั้งที่แต่ละคนเพิ่มงาน Monitor (ช่วง N วัน)
-    const result = await db.prepare(`
-      SELECT 
-        admin_email,
-        MAX(admin_name) as admin_name,
-        COUNT(*) as monitor_count,
-        MAX(created_at) as last_action
-      FROM activity_logs
-      WHERE category = 'monitor' 
-        AND action = 'เพิ่มงาน Monitor'
-        AND created_at >= datetime('now', '-' || ? || ' days')
-      GROUP BY admin_email
-      ORDER BY monitor_count DESC
-    `).bind(days).all();
+    // นับจำนวนครั้งที่แต่ละคนเพิ่มงาน Monitor
+    const query = isAll
+      ? `SELECT admin_email, MAX(admin_name) as admin_name, COUNT(*) as monitor_count, MAX(created_at) as last_action, MIN(created_at) as first_action
+         FROM activity_logs WHERE category = 'monitor' AND action = 'เพิ่มงาน Monitor'
+         GROUP BY admin_email ORDER BY monitor_count DESC`
+      : `SELECT admin_email, MAX(admin_name) as admin_name, COUNT(*) as monitor_count, MAX(created_at) as last_action, MIN(created_at) as first_action
+         FROM activity_logs WHERE category = 'monitor' AND action = 'เพิ่มงาน Monitor'
+         AND created_at >= datetime('now', '-' || ? || ' days')
+         GROUP BY admin_email ORDER BY monitor_count DESC`;
+    
+    const result = isAll
+      ? await db.prepare(query).all()
+      : await db.prepare(query).bind(days).all();
 
-    // สรุปรวม
     const users = ((result.results || []) as any[]).map(r => ({
       email: r.admin_email,
       name: r.admin_name || (r.admin_email || '').split('@')[0],
       count: r.monitor_count,
+      first_action: r.first_action,
       last_action: r.last_action,
     }));
     
     const total = users.reduce((sum, u) => sum + u.count, 0);
 
     return c.json({
-      period_days: days,
+      period: isAll ? 'all' : days + ' days',
       total_monitor_adds: total,
       users,
       generated_at: new Date().toISOString(),
