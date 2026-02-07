@@ -506,4 +506,18 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .mobile-nav.active{display:block}
 .mobile-nav .menu-item{padding:14px 16px;font-size:14px}
 .mobile-nav .user-box{margin-bottom:16px}
+.wk-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.wk-title{font-size:16px;font-weight:700;color:var(--text)}
+.wk-timer{font-size:12px;color:var(--accent);background:rgba(34,197,94,.1);padding:4px 10px;border-radius:20px}
+.wk-challenge{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:12px;background:var(--input);margin-bottom:10px;border:1px solid var(--border);transition:all .3s}
+.wk-challenge.wk-done{border-color:var(--accent);background:rgba(34,197,94,.05)}
+.wk-icon{font-size:24px;flex-shrink:0;width:40px;text-align:center;line-height:40px}
+.wk-info{flex:1;min-width:0}
+.wk-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px}
+.wk-desc{font-size:12px;color:var(--muted);margin-bottom:8px}
+.wk-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.wk-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.wk-progress{font-size:11px;color:var(--dim);margin-top:4px}
+.wk-done .wk-progress{color:var(--accent)}
+.wk-reward{font-size:11px;color:var(--purple);white-space:nowrap;padding:4px 8px;background:rgba(139,92,246,.1);border-radius:8px;align-self:center}
 `;

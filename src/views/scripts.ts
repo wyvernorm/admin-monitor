@@ -177,6 +177,87 @@ var GAME={
       if(badges.length>8)html+='<span class="badge-item" title="+'+(badges.length-8)+' more">+' +(badges.length-8)+'</span>';
       badgesCont.innerHTML=html;
     }
+  },
+  
+  // Weekly Challenges — auto-generated based on current week
+  getWeeklyChallenges:function(){
+    // Use ISO week number as seed for rotating challenges
+    var now=new Date();
+    var start=new Date(now.getFullYear(),0,1);
+    var weekNum=Math.ceil(((now-start)/86400000+start.getDay()+1)/7);
+    var pool=[
+      {id:'wk_total20',icon:'🎯',name:'ลุยสัปดาห์',desc:'ทำงานรวม 20 งานในสัปดาห์นี้',target:20,field:'week_total',reward:'50 XP Bonus'},
+      {id:'wk_total50',icon:'💪',name:'บ้าพลัง',desc:'ทำงานรวม 50 งานในสัปดาห์นี้',target:50,field:'week_total',reward:'150 XP Bonus'},
+      {id:'wk_yt10',icon:'📺',name:'YouTube Week',desc:'ทำ YouTube 10 งาน',target:10,field:'week_youtube',reward:'Badge: YouTube Hunter'},
+      {id:'wk_tt10',icon:'🎵',name:'TikTok Week',desc:'ทำ TikTok 10 งาน',target:10,field:'week_tiktok',reward:'Badge: TikTok Hunter'},
+      {id:'wk_fb10',icon:'📘',name:'Facebook Week',desc:'ทำ Facebook 10 งาน',target:10,field:'week_facebook',reward:'Badge: Facebook Hunter'},
+      {id:'wk_ig10',icon:'📷',name:'Instagram Week',desc:'ทำ Instagram 10 งาน',target:10,field:'week_instagram',reward:'Badge: Instagram Hunter'},
+      {id:'wk_allplat',icon:'🌈',name:'สายรุ้ง',desc:'ทำทุก Platform อย่างน้อย 3 งาน',target:3,field:'week_all_platforms',reward:'Badge: Rainbow Week'},
+      {id:'wk_streak5',icon:'🔥',name:'ไม่หยุดพัก',desc:'ทำงาน 5 วันติดในสัปดาห์นี้',target:5,field:'week_days_active',reward:'Badge: Unstoppable'},
+      {id:'wk_speed30',icon:'⚡',name:'Speed Run',desc:'ทำ 30 งานภายใน 1 วัน',target:30,field:'week_max_daily',reward:'Badge: Speed Demon'},
+      {id:'wk_night3',icon:'🦉',name:'สัปดาห์นกฮูก',desc:'ทำงานหลังเที่ยงคืน 3 ครั้ง',target:3,field:'week_night',reward:'Badge: Night Warrior'},
+      {id:'wk_early5',icon:'🐦',name:'ตื่นเช้าชนะ',desc:'ทำงานก่อน 7 โมง 5 ครั้ง',target:5,field:'week_early',reward:'Badge: Early Champion'},
+      {id:'wk_team100',icon:'🤝',name:'Team Goal',desc:'ทีมรวมกัน 100 งาน',target:100,field:'week_team_total',reward:'ทุกคนได้ Badge: Team Player'}
+    ];
+    // Pick 3 challenges per week (deterministic from weekNum)
+    var selected=[];
+    // Always include team challenge
+    selected.push(pool[pool.length-1]);
+    // Pick 2 individual challenges
+    var individual=pool.slice(0,pool.length-1);
+    var idx1=(weekNum*7)%individual.length;
+    var idx2=(weekNum*13+3)%individual.length;
+    if(idx2===idx1)idx2=(idx2+1)%individual.length;
+    selected.push(individual[idx1]);
+    selected.push(individual[idx2]);
+    return {week:weekNum,challenges:selected};
+  },
+  
+  // Calculate weekly stats for a user from logs
+  getWeeklyUserStats:function(logs,email){
+    var now=new Date();
+    var day=now.getDay();
+    var mondayOffset=day===0?6:day-1;
+    var weekStart=new Date(now);
+    weekStart.setDate(now.getDate()-mondayOffset);
+    weekStart.setHours(0,0,0,0);
+    var weekStartStr=weekStart.toISOString().split('T')[0];
+    
+    var stats={week_total:0,week_youtube:0,week_tiktok:0,week_facebook:0,week_instagram:0,week_night:0,week_early:0,week_days_active:0,week_max_daily:0,week_all_platforms:0,week_team_total:0};
+    var daysSet={};
+    var dailyCounts={};
+    
+    logs.forEach(function(l){
+      if(!l.created_at)return;
+      var d=l.created_at.split('T')[0]||l.created_at.split(' ')[0];
+      if(d<weekStartStr)return;
+      
+      // Team total (all users)
+      stats.week_team_total++;
+      
+      if(l.admin_email!==email)return;
+      
+      stats.week_total++;
+      if(l.category==='youtube')stats.week_youtube++;
+      if(l.category==='tiktok')stats.week_tiktok++;
+      if(l.category==='facebook')stats.week_facebook++;
+      if(l.category==='instagram')stats.week_instagram++;
+      
+      daysSet[d]=true;
+      dailyCounts[d]=(dailyCounts[d]||0)+1;
+      
+      var h=parseInt((l.created_at.split('T')[1]||l.created_at.split(' ')[1]||'12').split(':')[0]);
+      if(h>=0&&h<5)stats.week_night++;
+      if(h>=5&&h<7)stats.week_early++;
+    });
+    
+    stats.week_days_active=Object.keys(daysSet).length;
+    stats.week_max_daily=Math.max.apply(null,Object.values(dailyCounts).concat([0]));
+    
+    // All platforms: minimum across all
+    stats.week_all_platforms=Math.min(stats.week_youtube,stats.week_tiktok,stats.week_facebook,stats.week_instagram);
+    
+    return stats;
   }
 };
 
@@ -1007,8 +1088,44 @@ async function loadLogs(){
     }
     document.getElementById('leaderboard').innerHTML=lbHtml;
     
+    // Weekly Challenges
+    renderWeeklyChallenges(allLogs);
+    
     renderLogsTable();
   }catch(e){console.error('Load logs error:',e);}
+}
+
+function renderWeeklyChallenges(logs){
+  var el=document.getElementById('weekly-challenges');
+  if(!el||!user)return;
+  
+  var wk=GAME.getWeeklyChallenges();
+  var myStats=GAME.getWeeklyUserStats(logs,user.email);
+  
+  var html='<div class="wk-header"><span class="wk-title">🏆 Weekly Challenge — สัปดาห์ที่ '+wk.week+'</span><span class="wk-timer">'+getWeekEndCountdown()+'</span></div>';
+  
+  wk.challenges.forEach(function(ch){
+    var val=myStats[ch.field]||0;
+    var pct=Math.min(100,Math.round((val/ch.target)*100));
+    var done=val>=ch.target;
+    html+='<div class="wk-challenge'+(done?' wk-done':'')+'"><div class="wk-icon">'+(done?'✅':ch.icon)+'</div><div class="wk-info"><div class="wk-name">'+ch.name+'</div><div class="wk-desc">'+ch.desc+'</div><div class="wk-bar"><div class="wk-bar-fill" style="width:'+pct+'%;background:'+(done?'var(--accent)':'var(--blue)')+'"></div></div><div class="wk-progress">'+val+' / '+ch.target+(done?' — 🎉 สำเร็จ!':' ('+pct+'%)')+'</div></div><div class="wk-reward">🎁 '+ch.reward+'</div></div>';
+  });
+  
+  el.innerHTML=html;
+}
+
+function getWeekEndCountdown(){
+  var now=new Date();
+  var day=now.getDay();
+  var daysLeft=day===0?0:7-day;
+  var end=new Date(now);
+  end.setDate(now.getDate()+daysLeft);
+  end.setHours(23,59,59,0);
+  var diff=end-now;
+  var h=Math.floor(diff/3600000);
+  var d=Math.floor(h/24);
+  h=h%24;
+  return '⏰ เหลือ '+d+' วัน '+h+' ชม.';
 }
 
 function renderLogsTable(){

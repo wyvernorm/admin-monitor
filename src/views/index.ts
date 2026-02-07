@@ -365,6 +365,12 @@ export function renderIndex(): string {
             <div id="leaderboard"></div>
           </div>
         </div>
+        
+        <!-- Weekly Challenges -->
+        <div class="card" id="weekly-challenges-card">
+          <div id="weekly-challenges"></div>
+        </div>
+        
         <div class="card">
           <div class="card-header">
             <h3 style="font-size:15px;font-weight:600">📜 กิจกรรมล่าสุด</h3>

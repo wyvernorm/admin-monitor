@@ -157,20 +157,86 @@ app.get('/api/logs', async (c) => {
       LIMIT 500
     `).all();
     
-    // ดึงสถิติรวมต่อ email
+    // ดึงสถิติรวมต่อ email (basic counts)
     const statsResult = await db.prepare(`
       SELECT 
         admin_email,
+        MAX(admin_name) as admin_name,
         COUNT(*) as total_actions,
         MAX(created_at) as last_action,
         SUM(CASE WHEN category = 'youtube' THEN 1 ELSE 0 END) as youtube_count,
         SUM(CASE WHEN category = 'tiktok' THEN 1 ELSE 0 END) as tiktok_count,
         SUM(CASE WHEN category = 'facebook' THEN 1 ELSE 0 END) as facebook_count,
-        SUM(CASE WHEN category = 'instagram' THEN 1 ELSE 0 END) as instagram_count
+        SUM(CASE WHEN category = 'instagram' THEN 1 ELSE 0 END) as instagram_count,
+        COUNT(DISTINCT DATE(created_at)) as days_active,
+        SUM(CASE WHEN CAST(strftime('%H', created_at) AS INTEGER) >= 0 
+                  AND CAST(strftime('%H', created_at) AS INTEGER) < 5 THEN 1 ELSE 0 END) as night_count,
+        SUM(CASE WHEN CAST(strftime('%H', created_at) AS INTEGER) >= 5 
+                  AND CAST(strftime('%H', created_at) AS INTEGER) < 7 THEN 1 ELSE 0 END) as early_count,
+        SUM(CASE WHEN CAST(strftime('%w', created_at) AS INTEGER) IN (0, 6) THEN 1 ELSE 0 END) as weekend_count
       FROM activity_logs 
       GROUP BY admin_email
       ORDER BY total_actions DESC
     `).all();
+
+    // คำนวณ advanced stats: max_daily, max_hourly, max_streak per user
+    const advancedStats: Record<string, { max_daily: number; max_hourly: number; max_streak: number }> = {};
+    
+    // Max daily & max hourly per user
+    const dailyMax = await db.prepare(`
+      SELECT admin_email, MAX(cnt) as max_daily FROM (
+        SELECT admin_email, DATE(created_at) as d, COUNT(*) as cnt
+        FROM activity_logs GROUP BY admin_email, d
+      ) GROUP BY admin_email
+    `).all();
+    
+    const hourlyMax = await db.prepare(`
+      SELECT admin_email, MAX(cnt) as max_hourly FROM (
+        SELECT admin_email, DATE(created_at) as d, CAST(strftime('%H', created_at) AS INTEGER) as h, COUNT(*) as cnt
+        FROM activity_logs GROUP BY admin_email, d, h
+      ) GROUP BY admin_email
+    `).all();
+    
+    for (const r of (dailyMax.results || []) as any[]) {
+      if (!advancedStats[r.admin_email]) advancedStats[r.admin_email] = { max_daily: 0, max_hourly: 0, max_streak: 0 };
+      advancedStats[r.admin_email].max_daily = r.max_daily || 0;
+    }
+    for (const r of (hourlyMax.results || []) as any[]) {
+      if (!advancedStats[r.admin_email]) advancedStats[r.admin_email] = { max_daily: 0, max_hourly: 0, max_streak: 0 };
+      advancedStats[r.admin_email].max_hourly = r.max_hourly || 0;
+    }
+    
+    // Max streak per user (consecutive days)
+    const allDays = await db.prepare(`
+      SELECT admin_email, DATE(created_at) as d
+      FROM activity_logs 
+      GROUP BY admin_email, d
+      ORDER BY admin_email, d
+    `).all();
+    
+    let prevEmail = '', prevDate = '', streak = 0, maxStreak = 0;
+    for (const r of (allDays.results || []) as any[]) {
+      if (r.admin_email !== prevEmail) {
+        if (prevEmail && advancedStats[prevEmail]) advancedStats[prevEmail].max_streak = Math.max(maxStreak, streak);
+        streak = 1; maxStreak = 1; prevEmail = r.admin_email; prevDate = r.d;
+        if (!advancedStats[r.admin_email]) advancedStats[r.admin_email] = { max_daily: 0, max_hourly: 0, max_streak: 0 };
+        continue;
+      }
+      const prev = new Date(prevDate);
+      const curr = new Date(r.d);
+      const diff = (curr.getTime() - prev.getTime()) / 86400000;
+      if (diff === 1) { streak++; } else { maxStreak = Math.max(maxStreak, streak); streak = 1; }
+      prevDate = r.d;
+    }
+    if (prevEmail && advancedStats[prevEmail]) advancedStats[prevEmail].max_streak = Math.max(maxStreak, streak);
+    
+    // Merge advanced stats into main stats
+    const mergedStats = ((statsResult.results || []) as any[]).map(s => ({
+      ...s,
+      max_daily: advancedStats[s.admin_email]?.max_daily || 0,
+      max_hourly: advancedStats[s.admin_email]?.max_hourly || 0,
+      max_streak: advancedStats[s.admin_email]?.max_streak || 0,
+    }));
     
     // สร้าง pictureMap จาก logs ที่มี admin_picture (ล่าสุดต่อ email)
     const pictureMap: Record<string, string> = {};
@@ -182,7 +248,7 @@ app.get('/api/logs', async (c) => {
     
     return c.json({ 
       logs: logsResult.results || [],
-      stats: statsResult.results || [],
+      stats: mergedStats,
       pictureMap,
     });
   } catch (error: any) {
