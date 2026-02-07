@@ -1,4 +1,5 @@
-// HTML template — CSS/JS served as static assets via /static/app.css and /static/app.js
+import { styles } from './styles';
+import { scripts } from './scripts';
 
 export function renderIndex(): string {
   return `<!DOCTYPE html>
@@ -11,7 +12,7 @@ export function renderIndex(): string {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <link rel="stylesheet" href="/static/app.css">
+  <style>${styles}</style>
 </head>
 <body>
   <div id="login-page" class="login">
@@ -481,7 +482,7 @@ export function renderIndex(): string {
     <div class="modal-box"><div id="user-modal-content"></div></div>
   </div>
 
-  <script src="/static/app.js"></script>
+  ${scripts}
 </body>
 </html>`;
 }

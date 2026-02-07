@@ -622,23 +622,6 @@ app.get('/api/api-source-stats', async (c) => {
   }
 });
 
-// ============= STATIC ASSETS (CSS/JS แยกไฟล์ — ง่ายต่อ debug & browser cache) =============
-import { styles } from './views/styles';
-import { scripts as scriptContent } from './views/scripts';
-
-app.get('/static/app.css', (c) => {
-  c.header('Content-Type', 'text/css; charset=utf-8');
-  c.header('Cache-Control', 'public, max-age=300');
-  return c.body(styles);
-});
-
-app.get('/static/app.js', (c) => {
-  const js = scriptContent.replace(/^\s*<script>\s*/, '').replace(/\s*<\/script>\s*$/, '');
-  c.header('Content-Type', 'application/javascript; charset=utf-8');
-  c.header('Cache-Control', 'public, max-age=300');
-  return c.body(js);
-});
-
 // Main page
 app.get('/', (c) => {
   return c.html(renderIndex());
