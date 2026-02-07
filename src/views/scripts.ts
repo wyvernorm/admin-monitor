@@ -182,15 +182,21 @@ var GAME={
 
 // ==================== API MODULE ====================
 var API={
-  token:function(){return localStorage.getItem('session');},
+  // Read CSRF token from cookie
+  csrfToken:function(){
+    var m=document.cookie.match('(?:^|; )csrf_token=([^;]*)');
+    return m?decodeURIComponent(m[1]):'';
+  },
   
-  // Base request with retry
+  // Base request with retry (uses httpOnly cookie automatically)
   request:async function(endpoint,data,retries){
     retries=retries||2;
-    var opts={headers:{'Content-Type':'application/json'}};
-    var tk=this.token();
-    if(tk)opts.headers['X-Session-Token']=tk;
-    if(data){opts.method='POST';opts.body=JSON.stringify(data);}
+    var opts={headers:{'Content-Type':'application/json'},credentials:'same-origin'};
+    if(data){
+      opts.method='POST';
+      opts.body=JSON.stringify(data);
+      opts.headers['X-CSRF-Token']=this.csrfToken();
+    }
     
     for(var i=0;i<=retries;i++){
       try{
@@ -214,14 +220,13 @@ var API={
   // Specific APIs
   auth:{
     me:function(){return API.get('auth/me');},
-    logout:function(){localStorage.removeItem('session');location.href='/';}
+    logout:function(){localStorage.removeItem('session');location.href='/api/auth/logout';}
   },
   monitor:{
     list:function(){return API.get('monitor/orders');},
     add:function(data){return API.post('monitor/orders',data);},
     delete:async function(id){
-      var tk=API.token();
-      var r=await fetch('/api/monitor/orders/'+id,{method:'DELETE',headers:{'X-Session-Token':tk}});
+      var r=await fetch('/api/monitor/orders/'+id,{method:'DELETE',credentials:'same-origin',headers:{'X-CSRF-Token':API.csrfToken()}});
       return r.json();
     }
   },
@@ -273,7 +278,7 @@ function showError(el,msg,retryFn){
   el.innerHTML='<div class="error-box"><div class="error-icon">⚠️</div><div class="error-msg">'+(msg||'เกิดข้อผิดพลาด')+'</div>'+(retryFn?'<button class="btn btn-secondary" onclick="'+retryFn+'">🔄 ลองใหม่</button>':'')+'</div>';
 }
 
-async function checkAuth(){var savedToken=localStorage.getItem('session');if(!savedToken){showLogin();return;}try{var d=await API.auth.me();if(d.user){user=d.user;showApp();}else{localStorage.removeItem('session');showLogin();}}catch(e){showLogin();}}
+async function checkAuth(){try{var d=await API.auth.me();if(d.user){user=d.user;showApp();}else{showLogin();}}catch(e){showLogin();}}
 function showLogin(){document.getElementById('login-page').classList.remove('hidden');document.getElementById('main-app').classList.add('hidden');}
 function showApp(){document.getElementById('login-page').classList.add('hidden');document.getElementById('main-app').classList.remove('hidden');if(user){document.getElementById('user-name').textContent=user.name||'Admin';document.getElementById('user-email').textContent=user.email||'';document.getElementById('mobile-user-name').textContent=user.name||'Admin';document.getElementById('mobile-user-email').textContent=user.email||'';var a=document.getElementById('user-avatar');var ma=document.getElementById('mobile-avatar');if(user.picture){a.innerHTML='<img src="'+user.picture+'">';ma.innerHTML='<img src="'+user.picture+'">';}else{var init=(user.name||'A').charAt(0).toUpperCase();a.textContent=init;ma.textContent=init;}}loadDash();loadOrders();}
 function logout(){API.auth.logout();}
@@ -359,7 +364,7 @@ async function handleCheckNow(){
   btn.disabled=true;
   btn.textContent='⏳ กำลังตรวจสอบ...';
   try{
-    var res=await fetch('/api/monitor/check-all',{method:'POST',headers:{'X-Session-Token':localStorage.getItem('session')}});
+    var res=await fetch('/api/monitor/check-all',{method:'POST',credentials:'same-origin',headers:{'X-CSRF-Token':API.csrfToken()}});
     var d=await res.json();
     if(d.error){
       toast('⏳ '+d.error,'error');
@@ -565,7 +570,7 @@ async function delOrder(id){
   if(!confirm('ลบงานนี้?'))return;
   deleting[id]=true;
   try{
-    await fetch('/api/monitor/orders/'+id,{method:'DELETE',headers:{'X-Session-Token':localStorage.getItem('session')}});
+    await fetch('/api/monitor/orders/'+id,{method:'DELETE',credentials:'same-origin',headers:{'X-CSRF-Token':API.csrfToken()}});
     toast('ลบแล้ว');
     loadOrders();loadDash();
   }catch(e){toast(e.message,'error');}

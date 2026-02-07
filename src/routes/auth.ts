@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
-import { createSessionToken, verifySessionTokenCompat } from '../utils';
+import { createSessionToken, verifySessionTokenCompat, generateCsrfToken } from '../utils';
 import type { Bindings } from '../types';
 
 export const authRoutes = new Hono<{ Bindings: Bindings }>();
@@ -89,18 +89,28 @@ authRoutes.get('/callback', async (c) => {
       exp: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
     }, c.env.SESSION_SECRET);
 
-    // Set cookie
+    // Set httpOnly cookie — JS ไม่สามารถอ่านได้ ป้องกัน XSS token theft
     setCookie(c, 'session', sessionToken, {
       path: '/',
       secure: true,
-      httpOnly: false,
+      httpOnly: true,
       sameSite: 'Lax',
       maxAge: 7 * 24 * 60 * 60, // 7 days
     });
 
+    // Set CSRF token — JS อ่านได้ (ต้องส่งกลับใน header ทุก POST/PUT/DELETE)
+    const csrfToken = await generateCsrfToken();
+    setCookie(c, 'csrf_token', csrfToken, {
+      path: '/',
+      secure: true,
+      httpOnly: false, // JS ต้องอ่านได้เพื่อส่งผ่าน header
+      sameSite: 'Lax',
+      maxAge: 7 * 24 * 60 * 60,
+    });
+
     console.log('[AUTH] Session cookie set for:', userData.email);
 
-    // Return HTML that saves to localStorage and redirects
+    // Redirect — ไม่ต้อง save localStorage แล้ว (ใช้ httpOnly cookie แทน)
     return c.html(`
       <!DOCTYPE html>
       <html>
@@ -119,7 +129,7 @@ authRoutes.get('/callback', async (c) => {
           <div>กำลังเข้าสู่ระบบ...</div>
         </div>
         <script>
-          localStorage.setItem('session', '${sessionToken}');
+          localStorage.removeItem('session');
           window.location.href = '/';
         </script>
       </body>
@@ -140,7 +150,8 @@ authRoutes.get('/logout', async (c) => {
 // ============= GET CURRENT USER =============
 authRoutes.get('/me', async (c) => {
   try {
-    let sessionToken = c.req.header('X-Session-Token') || getCookie(c, 'session');
+    // httpOnly cookie — เฉพาะ server อ่านได้
+    let sessionToken = getCookie(c, 'session');
     
     console.log('[AUTH] /me called, token exists:', !!sessionToken);
 
@@ -148,7 +159,6 @@ authRoutes.get('/me', async (c) => {
       return c.json({ user: null });
     }
 
-    // Verify with HMAC (backward-compatible with old unsigned tokens)
     const session = await verifySessionTokenCompat(sessionToken, c.env.SESSION_SECRET);
     
     if (!session) {

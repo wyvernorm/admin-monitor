@@ -38,7 +38,7 @@ app.use('*', cors({
   credentials: true,
 }));
 
-// Auth middleware - Check session for API access (HMAC-signed)
+// Auth middleware - Check session for API access (httpOnly cookie)
 app.use('/api/*', async (c, next) => {
   const path = c.req.path;
   
@@ -47,8 +47,8 @@ app.use('/api/*', async (c, next) => {
     return next();
   }
   
-  // Try to get token from header first, then cookie
-  let sessionToken = c.req.header('X-Session-Token') || getCookie(c, 'session');
+  // Read session from httpOnly cookie only (no more X-Session-Token header)
+  const sessionToken = getCookie(c, 'session');
   
   if (!sessionToken) {
     return c.json({ error: 'Unauthorized' }, 401);
@@ -64,6 +64,63 @@ app.use('/api/*', async (c, next) => {
   // Add user to context for logging
   c.set('user', session);
   c.set('userEmail', session.email);
+  
+  await next();
+});
+
+// CSRF middleware — ตรวจ POST/PUT/DELETE ต้องมี X-CSRF-Token header ตรงกับ cookie
+app.use('/api/*', async (c, next) => {
+  const method = c.req.method;
+  const path = c.req.path;
+  
+  // Skip CSRF check for: GET/HEAD requests, auth endpoints, cron (internal)
+  if (method === 'GET' || method === 'HEAD' || path.startsWith('/api/auth/')) {
+    return next();
+  }
+  
+  const csrfCookie = getCookie(c, 'csrf_token');
+  const csrfHeader = c.req.header('X-CSRF-Token');
+  
+  if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
+    return c.json({ error: 'CSRF token mismatch' }, 403);
+  }
+  
+  await next();
+});
+
+// Rate limiting middleware — จำกัด request ต่อ user ต่อนาที ป้องกัน API quota spam
+app.use('/api/*', async (c, next) => {
+  const path = c.req.path;
+  
+  // เฉพาะ paths ที่เรียก external APIs (เปลือง quota)
+  const rateLimitedPaths = [
+    '/api/youtube/stats',
+    '/api/youtube/channel',
+    '/api/tiktok/stats',
+    '/api/facebook/stats',
+    '/api/instagram/stats',
+  ];
+  
+  const needsRateLimit = rateLimitedPaths.some(p => path.startsWith(p));
+  if (!needsRateLimit) return next();
+  
+  try {
+    const kv = c.env.ADMIN_MONITOR_CACHE;
+    const userEmail = c.get('userEmail') || 'anon';
+    const key = `rl:${userEmail}:${path}`;
+    
+    const current = await kv.get(key);
+    const count = current ? parseInt(current) : 0;
+    
+    // จำกัด 10 requests ต่อ endpoint ต่อนาที ต่อ user
+    if (count >= 10) {
+      return c.json({ error: 'กรุณารอสักครู่ — ใช้งานบ่อยเกินไป' }, 429);
+    }
+    
+    await kv.put(key, String(count + 1), { expirationTtl: 60 });
+  } catch (e) {
+    console.error('[RATE-LIMIT] Error:', e);
+  }
   
   await next();
 });
@@ -224,22 +281,11 @@ app.post('/api/log-action', async (c) => {
     const { action, category, details, email } = await c.req.json();
     const db = c.env.DB;
     
-    // ดึงข้อมูลจาก session (มี email + name)
-    let userEmail = email || 'unknown';
-    let userName = '';
-    let userPicture = '';
-    
-    const sessionToken = c.req.header('X-Session-Token') || getCookie(c, 'session');
-    if (sessionToken) {
-      try {
-        const session = await verifySessionTokenCompat(sessionToken, c.env.SESSION_SECRET);
-        if (session) {
-          if (userEmail === 'unknown') userEmail = session.email || 'unknown';
-          userName = session.name || '';
-          userPicture = session.picture || '';
-        }
-      } catch (e) {}
-    }
+    // ดึงข้อมูลจาก session middleware (c.set('user'))
+    const sessionUser = c.get('user') as any;
+    const userEmail = sessionUser?.email || email || 'unknown';
+    const userName = sessionUser?.name || '';
+    const userPicture = sessionUser?.picture || '';
     
     console.log('[LOG-ACTION] Attempting to log:', { userEmail, userName, action, category });
     const result = await logAction(db, userEmail, action, category, details, userName, userPicture);

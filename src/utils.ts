@@ -173,6 +173,16 @@ export async function sendReportBot(
   });
 }
 
+// ---------- CSRF Token ----------
+/**
+ * สร้าง CSRF token (random hex 32 bytes)
+ */
+export async function generateCsrfToken(): Promise<string> {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // ---------- Activity Logging (with dedup) ----------
 export async function logAction(
   db: D1Database, email: string, action: string, category: string, 
