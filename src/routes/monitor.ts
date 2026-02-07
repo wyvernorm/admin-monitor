@@ -92,11 +92,12 @@ monitorRoutes.post('/orders', async (c) => {
     // Log activity (เพิ่มงานเท่านั้น)
     try {
       await db.prepare(`
-        INSERT INTO activity_logs (admin_email, admin_name, action, category, details, created_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now'))
+        INSERT INTO activity_logs (admin_email, admin_name, admin_picture, action, category, details, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
       `).bind(
         userEmail,
         user?.name || userEmail.split('@')[0],
+        user?.picture || '',
         'เพิ่มงาน Monitor',
         'monitor',
         JSON.stringify({url, viewTarget: viewTargetNum, likeTarget: likeTargetNum, lineId})
@@ -130,11 +131,12 @@ monitorRoutes.delete('/orders/:id', async (c) => {
     // Log activity (แสดงใน logs แต่ไม่นับสถิติ - ใช้ category 'system')
     try {
       await db.prepare(`
-        INSERT INTO activity_logs (admin_email, admin_name, action, category, details, created_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now'))
+        INSERT INTO activity_logs (admin_email, admin_name, admin_picture, action, category, details, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
       `).bind(
         userEmail,
         user?.name || userEmail.split('@')[0],
+        user?.picture || '',
         'ลบงาน Monitor',
         'system',
         JSON.stringify({orderId: id})

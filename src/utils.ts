@@ -176,7 +176,7 @@ export async function sendReportBot(
 // ---------- Activity Logging (with dedup) ----------
 export async function logAction(
   db: D1Database, email: string, action: string, category: string, 
-  details?: string, adminName?: string
+  details?: string, adminName?: string, adminPicture?: string
 ): Promise<any> {
   // Check for duplicate within 5 seconds
   const recent = await db.prepare(`
@@ -192,11 +192,12 @@ export async function logAction(
   }
   
   const name = adminName || email.split('@')[0] || '';
+  const picture = adminPicture || '';
   console.log('[LOG] Inserting:', { email, name, action, category, details });
   const result = await db.prepare(`
-    INSERT INTO activity_logs (admin_email, admin_name, action, category, details, created_at)
-    VALUES (?, ?, ?, ?, ?, datetime('now'))
-  `).bind(email, name, action, category, details || '').run();
+    INSERT INTO activity_logs (admin_email, admin_name, admin_picture, action, category, details, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+  `).bind(email, name, picture, action, category, details || '').run();
   console.log('[LOG] Insert result:', result);
   return result;
 }

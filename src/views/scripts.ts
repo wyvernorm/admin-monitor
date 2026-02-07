@@ -1,7 +1,14 @@
 export const scripts = `
 <script>
-var user=null,lastYT=null,NL=String.fromCharCode(10),usedFB=[],usedIG=[],currentLogFilter='all',ttCache={},allLogs=[],nameMap={};
+var user=null,lastYT=null,NL=String.fromCharCode(10),usedFB=[],usedIG=[],currentLogFilter='all',ttCache={},allLogs=[],nameMap={},pictureMap={};
 var prevRanks={},earnedBadges=(function(){try{return JSON.parse(localStorage.getItem('earnedBadges')||'[]');}catch(e){return [];}})();
+
+// Avatar helper: show Google profile picture if available, else initial letter
+function avatarHtml(email,initial,cssClass){
+  var pic=pictureMap[email];
+  if(pic)return '<img src="'+pic+'" class="'+(cssClass||'')+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" referrerpolicy="no-referrer" onerror="this.parentNode.textContent=\\''+initial+'\\'">';
+  return initial;
+}
 
 // 🎉 Celebration Functions
 function fireConfetti(){
@@ -928,13 +935,15 @@ async function loadLogs(){
     });
     document.getElementById('platform-stats').innerHTML=platHtml;
     
-    // Build name map: use latest clean name per email (shared by leaderboard + logs table)
+    // Build name map + picture map: use latest clean data per email
     nameMap={};
+    pictureMap={};
     allLogs.forEach(function(l){
       if(!l.admin_email)return;
       var n=l.admin_name||'';
       if(n&&(n.indexOf('\u00c3')>=0||n.indexOf('\u00e0\u00b8')>=0||n.indexOf('\u00c2')>=0))n='';
       if(n&&!nameMap[l.admin_email])nameMap[l.admin_email]=n;
+      if(l.admin_picture&&!pictureMap[l.admin_email])pictureMap[l.admin_email]=l.admin_picture;
     });
     
     // Leaderboard with Gamification + Rank Animation
@@ -966,7 +975,7 @@ async function loadLogs(){
         var badges=GAME.getBadges(userStats);
         var badgeIcons=badges.slice(0,4).map(function(b){return'<span title="'+b.name+'">'+b.icon+'</span>';}).join('');
         
-        lbHtml+='<div class="lb-row clickable '+rankClass+'" onclick="showUserDetail(\\''+emailEnc+'\\')"><div class="lb-medal">'+medal+'</div><div class="lb-user-avatar">'+initial+'</div><div class="lb-user-info"><div class="lb-user-name">'+name+'<span class="lb-level" style="background:'+lv.color+'">Lv.'+lv.lv+'</span></div><div class="lb-badges">'+badgeIcons+'</div></div><div class="lb-user-score">'+fmt(s.total_actions||0)+'</div></div>';
+        lbHtml+='<div class="lb-row clickable '+rankClass+'" onclick="showUserDetail(\\''+emailEnc+'\\')"><div class="lb-medal">'+medal+'</div><div class="lb-user-avatar">'+avatarHtml(email,initial)+'</div><div class="lb-user-info"><div class="lb-user-name">'+name+'<span class="lb-level" style="background:'+lv.color+'">Lv.'+lv.lv+'</span></div><div class="lb-badges">'+badgeIcons+'</div></div><div class="lb-user-score">'+fmt(s.total_actions||0)+'</div></div>';
       });
       prevRanks=newRanks;
       
@@ -1020,7 +1029,7 @@ function renderLogsTable(){
     var actionText=l.action||'-';
     var detailsHtml='';
     if(l.details){try{var det=typeof l.details==='string'?JSON.parse(l.details):l.details;if(det.url)detailsHtml='<div class="log-details">🔗 '+det.url.substring(0,50)+(det.url.length>50?'...':'')+'</div>';if(det.viewTarget)detailsHtml+='<span class="log-tag">👀 '+fmt(det.viewTarget)+'</span>';if(det.likeTarget)detailsHtml+='<span class="log-tag">👍 '+fmt(det.likeTarget)+'</span>';}catch(e){}}
-    html+='<tr onclick="showUserDetail(\\''+emailEnc+'\\')"><td><div class="log-user clickable"><div class="log-user-avatar">'+initial+'</div><div class="log-user-info"><div class="log-user-name">'+name+'</div><div class="log-user-email">'+(l.admin_email||'')+'</div></div></div></td><td><span class="log-platform" style="background:'+color+'20;color:'+color+'">'+icon+' '+cat+'</span></td><td class="log-action">'+actionText+detailsHtml+'</td><td class="log-time">'+time+'</td></tr>';
+    html+='<tr onclick="showUserDetail(\\''+emailEnc+'\\')"><td><div class="log-user clickable"><div class="log-user-avatar">'+avatarHtml(l.admin_email||'',initial)+'</div><div class="log-user-info"><div class="log-user-name">'+name+'</div><div class="log-user-email">'+(l.admin_email||'')+'</div></div></div></td><td><span class="log-platform" style="background:'+color+'20;color:'+color+'">'+icon+' '+cat+'</span></td><td class="log-action">'+actionText+detailsHtml+'</td><td class="log-time">'+time+'</td></tr>';
   });
   tbody.innerHTML=html;
 }
@@ -1052,7 +1061,7 @@ async function showUserDetail(emailEnc){
     var platIcons={youtube:'📺',tiktok:'🎵',facebook:'📘',instagram:'📷',monitor:'🧠'};
     
     // Header
-    var html='<div class="modal-header"><div class="modal-user"><div class="modal-avatar">'+initial+'</div><div><div class="modal-name">'+name+'</div><div class="modal-email">'+email+'</div></div></div><button class="modal-close" onclick="closeUserModal()">✕</button></div>';
+    var html='<div class="modal-header"><div class="modal-user"><div class="modal-avatar">'+avatarHtml(email,initial)+'</div><div><div class="modal-name">'+name+'</div><div class="modal-email">'+email+'</div></div></div><button class="modal-close" onclick="closeUserModal()">✕</button></div>';
     
     // Platform stats
     html+='<div class="modal-stats"><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.total_actions||0)+'</div><div class="modal-stat-lbl">กิจกรรมทั้งหมด</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.youtube_count||0)+'</div><div class="modal-stat-lbl">📺 YouTube</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.tiktok_count||0)+'</div><div class="modal-stat-lbl">🎵 TikTok</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.facebook_count||0)+'</div><div class="modal-stat-lbl">📘 Facebook</div></div><div class="modal-stat"><div class="modal-stat-val">'+fmt(stats.instagram_count||0)+'</div><div class="modal-stat-lbl">📷 Instagram</div></div></div>';
@@ -1243,7 +1252,7 @@ function renderGameLeaderboard(stats){
     var medal=i<3?medals[i]:(i+1);
     var badgeIcons=badges.slice(0,5).map(function(b){return'<span title="'+b.name+'">'+b.icon+'</span>';}).join('');
     
-    html+='<div class="game-lb-row"><div class="game-lb-rank">'+medal+'</div><div class="game-lb-avatar" style="background:'+lv.color+'">'+initial+'</div><div class="game-lb-info"><div class="game-lb-name">'+name+'<span class="lb-level" style="background:'+lv.color+'">Lv.'+lv.lv+'</span></div><div class="game-lb-badges">'+badgeIcons+'</div></div><div class="game-lb-score">'+fmt(s.total_actions||0)+'</div></div>';
+    html+='<div class="game-lb-row"><div class="game-lb-rank">'+medal+'</div><div class="game-lb-avatar" style="background:'+lv.color+'">'+avatarHtml(s.admin_email||'',initial)+'</div><div class="game-lb-info"><div class="game-lb-name">'+name+'<span class="lb-level" style="background:'+lv.color+'">Lv.'+lv.lv+'</span></div><div class="game-lb-badges">'+badgeIcons+'</div></div><div class="game-lb-score">'+fmt(s.total_actions||0)+'</div></div>';
   });
   el.innerHTML=html;
 }

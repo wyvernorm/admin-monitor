@@ -207,6 +207,7 @@ app.post('/api/log-action', async (c) => {
     // ดึงข้อมูลจาก session (มี email + name)
     let userEmail = email || 'unknown';
     let userName = '';
+    let userPicture = '';
     
     const sessionToken = c.req.header('X-Session-Token') || getCookie(c, 'session');
     if (sessionToken) {
@@ -215,12 +216,13 @@ app.post('/api/log-action', async (c) => {
         if (session) {
           if (userEmail === 'unknown') userEmail = session.email || 'unknown';
           userName = session.name || '';
+          userPicture = session.picture || '';
         }
       } catch (e) {}
     }
     
     console.log('[LOG-ACTION] Attempting to log:', { userEmail, userName, action, category });
-    const result = await logAction(db, userEmail, action, category, details, userName);
+    const result = await logAction(db, userEmail, action, category, details, userName, userPicture);
     console.log('[LOG-ACTION] Success:', result);
     
     return c.json({ success: true, email: userEmail, dbResult: result });

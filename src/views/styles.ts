@@ -78,7 +78,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .game-leaderboard{display:flex;flex-direction:column;gap:8px}
 .game-lb-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--input);border-radius:10px}
 .game-lb-rank{width:30px;text-align:center;font-weight:700}
-.game-lb-avatar{width:40px;height:40px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-weight:700}
+.game-lb-avatar{width:40px;height:40px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden}
 .game-lb-info{flex:1}
 .game-lb-name{font-weight:600;display:flex;align-items:center;gap:8px}
 .game-lb-badges{display:flex;gap:4px;margin-top:4px}
@@ -362,7 +362,7 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .lb-row.clickable{cursor:pointer}
 .lb-row.clickable:hover{background:rgba(139,92,246,.1);transform:translateX(4px)}
 .lb-medal{font-size:18px;width:28px;text-align:center}
-.lb-user-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--purple),var(--pink));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff}
+.lb-user-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--purple),var(--pink));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;overflow:hidden}
 .lb-user-info{flex:1;min-width:0}
 .lb-user-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lb-user-email{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -383,7 +383,7 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .logs-table tr:last-child td{border-bottom:none}
 
 .log-user{display:flex;align-items:center;gap:10px}
-.log-user-avatar{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--blue));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0}
+.log-user-avatar{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--blue));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0;overflow:hidden}
 .log-user-info{min-width:0}
 .log-user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .log-user-email{font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -401,7 +401,7 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .modal-box{background:var(--card);border:1px solid var(--border);border-radius:20px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto}
 .modal-header{display:flex;align-items:center;justify-content:space-between;padding:24px;border-bottom:1px solid var(--border)}
 .modal-user{display:flex;align-items:center;gap:16px}
-.modal-avatar{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--pink));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff}
+.modal-avatar{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--pink));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;overflow:hidden}
 .modal-name{font-size:20px;font-weight:700}
 .modal-email{font-size:13px;color:var(--dim)}
 .modal-close{width:40px;height:40px;border-radius:10px;background:var(--input);border:1px solid var(--border);color:var(--muted);font-size:18px;cursor:pointer;transition:all .2s}
