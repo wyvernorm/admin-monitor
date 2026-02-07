@@ -1,12 +1,7 @@
 import { Hono } from 'hono';
 import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
-
-type Bindings = {
-  DB: D1Database;
-  GOOGLE_CLIENT_ID: string;
-  GOOGLE_CLIENT_SECRET: string;
-  SESSION_SECRET: string;
-};
+import { createSessionToken, verifySessionTokenCompat } from '../utils';
+import type { Bindings } from '../types';
 
 export const authRoutes = new Hono<{ Bindings: Bindings }>();
 
@@ -14,24 +9,6 @@ const REDIRECT_URI = 'https://admin-monitor.iplusview.workers.dev/api/auth/callb
 const ALLOWED_EMAILS = [
   // Add allowed admin emails here
 ];
-
-// ============= HELPER: Unicode-safe Base64 =============
-function base64Encode(str: string): string {
-  // Convert Unicode string to UTF-8 bytes, then to base64
-  const utf8Bytes = new TextEncoder().encode(str);
-  const binaryString = String.fromCharCode(...utf8Bytes);
-  return btoa(binaryString);
-}
-
-function base64Decode(base64: string): string {
-  // Decode base64 to UTF-8 bytes, then to Unicode string
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return new TextDecoder().decode(bytes);
-}
 
 // ============= LOGIN - REDIRECT TO GOOGLE =============
 authRoutes.get('/login', async (c) => {
@@ -86,18 +63,31 @@ authRoutes.get('/callback', async (c) => {
 
     const userData = await userRes.json() as any;
 
-    // Check if email is allowed (optional - comment out if not needed)
-    // if (ALLOWED_EMAILS.length > 0 && !ALLOWED_EMAILS.includes(userData.email)) {
-    //   return c.redirect('/?error=not_authorized');
-    // }
+    // Check if email is in team_members table (access control)
+    // ถ้าตาราง team_members มีข้อมูล จะอนุญาตเฉพาะคนที่อยู่ในตาราง
+    // ถ้าตารางว่าง จะอนุญาตทุกคน (first-time setup)
+    try {
+      const db = c.env.DB;
+      const memberCount = await db.prepare('SELECT COUNT(*) as c FROM team_members').first() as any;
+      if (memberCount?.c > 0) {
+        const member = await db.prepare('SELECT email FROM team_members WHERE email = ?').bind(userData.email).first();
+        if (!member) {
+          console.log('[AUTH] Access denied for:', userData.email);
+          return c.redirect('/?error=not_authorized');
+        }
+      }
+    } catch (e) {
+      // ถ้า table ยังไม่มี ให้ผ่านไปก่อน
+      console.log('[AUTH] team_members check skipped:', e);
+    }
 
-    // Create session token (Unicode-safe)
-    const sessionToken = base64Encode(JSON.stringify({
+    // Create HMAC-signed session token
+    const sessionToken = await createSessionToken({
       email: userData.email,
       name: userData.name,
       picture: userData.picture,
       exp: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-    }));
+    }, c.env.SESSION_SECRET);
 
     // Set cookie
     setCookie(c, 'session', sessionToken, {
@@ -150,7 +140,6 @@ authRoutes.get('/logout', async (c) => {
 // ============= GET CURRENT USER =============
 authRoutes.get('/me', async (c) => {
   try {
-    // Try header first, then cookie
     let sessionToken = c.req.header('X-Session-Token') || getCookie(c, 'session');
     
     console.log('[AUTH] /me called, token exists:', !!sessionToken);
@@ -158,21 +147,16 @@ authRoutes.get('/me', async (c) => {
     if (!sessionToken) {
       return c.json({ user: null });
     }
+
+    // Verify with HMAC (backward-compatible with old unsigned tokens)
+    const session = await verifySessionTokenCompat(sessionToken, c.env.SESSION_SECRET);
     
-    // Decode if URL encoded
-    try {
-      sessionToken = decodeURIComponent(sessionToken);
-    } catch(e) {}
-
-    // Use Unicode-safe decode
-    const session = JSON.parse(base64Decode(sessionToken));
-    console.log('[AUTH] Session parsed for:', session.email);
-
-    // Check expiration
-    if (session.exp < Date.now()) {
-      console.log('[AUTH] Session expired');
+    if (!session) {
+      console.log('[AUTH] Session invalid or expired');
       return c.json({ user: null });
     }
+
+    console.log('[AUTH] Session verified for:', session.email);
 
     return c.json({
       user: {

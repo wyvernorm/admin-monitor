@@ -1,11 +1,5 @@
 import { Hono } from 'hono';
-
-type Bindings = {
-  DB: D1Database;
-  APIFY_TOKEN: string;
-  ENSEMBLE_TOKEN: string;
-  ADMIN_MONITOR_CACHE: KVNamespace;
-};
+import type { Bindings } from '../types';
 
 export const tiktokRoutes = new Hono<{ Bindings: Bindings }>();
 

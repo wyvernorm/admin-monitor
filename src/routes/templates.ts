@@ -1,9 +1,6 @@
 import { Hono } from 'hono';
 import { getCookie } from 'hono/cookie';
-
-type Bindings = {
-  DB: D1Database;
-};
+import type { Bindings } from '../types';
 
 export const templateRoutes = new Hono<{ Bindings: Bindings }>();
 

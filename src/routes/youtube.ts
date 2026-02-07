@@ -1,39 +1,8 @@
 import { Hono } from 'hono';
-
-type Bindings = {
-  DB: D1Database;
-  YOUTUBE_API_KEY: string;
-  ADMIN_MONITOR_CACHE: KVNamespace;
-};
+import { extractVideoId, extractChannelId, isChannelUrl } from '../utils';
+import type { Bindings } from '../types';
 
 export const youtubeRoutes = new Hono<{ Bindings: Bindings }>();
-
-// ============= HELPER FUNCTIONS =============
-
-function extractVideoId(url: string): string | null {
-  if (url.includes('watch?v=')) {
-    return url.split('watch?v=')[1].split('&')[0];
-  }
-  if (url.includes('youtu.be/')) {
-    return url.split('youtu.be/')[1].split('?')[0];
-  }
-  if (url.includes('/shorts/')) {
-    return url.split('/shorts/')[1].split('?')[0];
-  }
-  return null;
-}
-
-function extractChannelId(url: string): string | null {
-  if (url.includes('/channel/')) {
-    const match = url.match(/\/channel\/([^\/\?]+)/);
-    return match ? match[1] : null;
-  }
-  return null;
-}
-
-function isChannelUrl(url: string): boolean {
-  return url.includes('/channel/') || url.includes('/@') || url.includes('/c/');
-}
 
 // ============= GET VIDEO STATS =============
 youtubeRoutes.post('/stats', async (c) => {

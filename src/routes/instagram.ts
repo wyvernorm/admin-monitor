@@ -1,11 +1,5 @@
 import { Hono } from 'hono';
-
-type Bindings = {
-  DB: D1Database;
-  APIFY3_TOKEN: string;
-  ENSEMBLE_IG_TOKEN: string;
-  ADMIN_MONITOR_CACHE: KVNamespace;
-};
+import type { Bindings } from '../types';
 
 export const instagramRoutes = new Hono<{ Bindings: Bindings }>();
 

@@ -41,6 +41,20 @@ CREATE TABLE logs (
   created_at TEXT
 );
 
+-- Step 5: Create Team Members table (access control)
+CREATE TABLE team_members (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  name TEXT DEFAULT '',
+  role TEXT DEFAULT 'member',  -- 'admin' | 'member' | 'viewer'
+  invited_by TEXT DEFAULT '',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_team_email ON team_members(email);
+CREATE INDEX idx_team_role ON team_members(role);
+
 -- Step 5: Insert TikTok templates
 INSERT INTO templates (name, platform, items) VALUES ('วิว 10K + ไลค์ 1K', 'tiktok', '[{"type":"view","subType":"mix","amount":10000},{"type":"like","subType":"normal","amount":1000}]');
 INSERT INTO templates (name, platform, items) VALUES ('วิว 5K TH', 'tiktok', '[{"type":"view","subType":"th","amount":5000}]');

@@ -1,29 +1,10 @@
 import { Hono } from 'hono';
-
-type Bindings = {
-  DB: D1Database;
-  YOUTUBE_API_KEY: string;
-  TELEGRAM_BOT_TOKEN: string;
-  TELEGRAM_GROUP_ID: string;
-  ADMIN_MONITOR_CACHE: KVNamespace;
-};
+import { extractVideoId, sendTelegramNotification } from '../utils';
+import type { Bindings } from '../types';
 
 export const monitorRoutes = new Hono<{ Bindings: Bindings }>();
 
 // ============= HELPER FUNCTIONS =============
-
-function extractVideoId(url: string): string | null {
-  if (url.includes('watch?v=')) {
-    return url.split('watch?v=')[1].split('&')[0];
-  }
-  if (url.includes('youtu.be/')) {
-    return url.split('youtu.be/')[1].split('?')[0];
-  }
-  if (url.includes('/shorts/')) {
-    return url.split('/shorts/')[1].split('?')[0];
-  }
-  return null;
-}
 
 async function getYoutubeStats(url: string, apiKey: string): Promise<any> {
   const videoId = extractVideoId(url);
@@ -43,24 +24,7 @@ async function getYoutubeStats(url: string, apiKey: string): Promise<any> {
   };
 }
 
-async function sendTelegram(token: string, groupId: string, text: string, youtubeUrl: string): Promise<void> {
-  const url = `https://api.telegram.org/bot${token}/sendMessage`;
-
-  await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: groupId,
-      text: text,
-      parse_mode: 'HTML',
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '▶️ เปิดดูคลิปบน YouTube', url: youtubeUrl }
-        ]]
-      }
-    }),
-  });
-}
+// sendTelegram is now imported as sendTelegramNotification from utils.ts
 
 // ============= GET ALL RUNNING ORDERS =============
 monitorRoutes.get('/orders', async (c) => {
@@ -264,7 +228,7 @@ monitorRoutes.post('/check-all', async (c) => {
         }
 
         // Send Telegram notification
-        await sendTelegram(TG_TOKEN, TG_GROUP, message, order.url);
+        await sendTelegramNotification(TG_TOKEN, TG_GROUP, message, order.url);
 
         // Update status
         await db.prepare(`
@@ -457,11 +421,17 @@ monitorRoutes.post('/cleanup', async (c) => {
     const { days = 30 } = await c.req.json();
     const db = c.env.DB;
 
+    // Validate days is a positive integer (1-365)
+    const daysNum = Math.floor(Number(days));
+    if (isNaN(daysNum) || daysNum < 1 || daysNum > 365) {
+      return c.json({ error: 'days ต้องเป็นตัวเลข 1-365' }, 400);
+    }
+
     const result = await db.prepare(`
       DELETE FROM orders 
       WHERE status = 'done' 
       AND completed_at < datetime('now', '-' || ? || ' days')
-    `).bind(days).run();
+    `).bind(daysNum).run();
 
     return c.json({ 
       success: true, 

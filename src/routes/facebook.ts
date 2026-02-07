@@ -1,11 +1,5 @@
 import { Hono } from 'hono';
-
-type Bindings = {
-  DB: D1Database;
-  APIFY2_TOKEN: string;
-  RAPIDAPI_KEY: string;
-  ADMIN_MONITOR_CACHE: KVNamespace;
-};
+import type { Bindings } from '../types';
 
 export const facebookRoutes = new Hono<{ Bindings: Bindings }>();
 
