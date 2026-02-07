@@ -520,4 +520,10 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .wk-progress{font-size:11px;color:var(--dim);margin-top:4px}
 .wk-done .wk-progress{color:var(--accent)}
 .wk-reward{font-size:11px;color:var(--purple);white-space:nowrap;padding:4px 8px;background:rgba(139,92,246,.1);border-radius:8px;align-self:center}
+.pg-container{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-top:1px solid var(--border);margin-top:8px}
+.pg-info{font-size:12px;color:var(--dim)}
+.pg-btns{display:flex;gap:4px}
+.pg-btn{background:var(--input);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;transition:all .2s}
+.pg-btn:hover{background:var(--card);border-color:var(--accent)}
+.pg-btn.pg-active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
 `;

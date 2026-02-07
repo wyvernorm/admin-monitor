@@ -18,6 +18,7 @@ export type Bindings = {
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   SESSION_SECRET: string;
+  PUBLIC_API_KEY: string;
   ADMIN_MONITOR_CACHE: KVNamespace;
 };
 

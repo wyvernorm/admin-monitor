@@ -390,6 +390,7 @@ export function renderIndex(): string {
             </table>
           </div>
           <div id="logs-empty" class="empty hidden"><div class="empty-icon">📜</div><div class="empty-title">ยังไม่มีกิจกรรม</div><div class="empty-desc">เริ่มใช้งานเพื่อบันทึกกิจกรรม</div></div>
+          <div id="logs-pagination" class="pg-container"></div>
         </div>
       </div>
 

@@ -1128,6 +1128,9 @@ function getWeekEndCountdown(){
   return '⏰ เหลือ '+d+' วัน '+h+' ชม.';
 }
 
+var logsPage=1;
+var logsPerPage=20;
+
 function renderLogsTable(){
   var filtered=currentLogFilter==='all'?allLogs:allLogs.filter(function(l){return l.category===currentLogFilter;});
   var tbody=document.getElementById('logs-tbody');
@@ -1135,13 +1138,21 @@ function renderLogsTable(){
   if(!filtered.length){
     tbody.innerHTML='';
     emptyEl.classList.remove('hidden');
+    document.getElementById('logs-pagination').innerHTML='';
     return;
   }
   emptyEl.classList.add('hidden');
+  
+  var totalPages=Math.ceil(filtered.length/logsPerPage);
+  if(logsPage>totalPages)logsPage=totalPages;
+  if(logsPage<1)logsPage=1;
+  var start=(logsPage-1)*logsPerPage;
+  var pageItems=filtered.slice(start,start+logsPerPage);
+  
   var platColors={youtube:'#ff0000',tiktok:'#00d9ff',facebook:'#1877f2',instagram:'#e1306c',monitor:'#22c55e'};
   var platIcons={youtube:'📺',tiktok:'🎵',facebook:'📘',instagram:'📷',monitor:'🧠',system:'⚙️'};
   var html='';
-  filtered.slice(0,50).forEach(function(l){
+  pageItems.forEach(function(l){
     var name=nameMap[l.admin_email]||l.admin_name||(l.admin_email||'').split('@')[0]||'unknown';
     if(name.indexOf('\u00c3')>=0||name.indexOf('\u00e0\u00b8')>=0||name.indexOf('\u00c2')>=0)name=(l.admin_email||'').split('@')[0]||'unknown';
     var initial=name.charAt(0).toUpperCase();
@@ -1156,10 +1167,25 @@ function renderLogsTable(){
     html+='<tr onclick="showUserDetail(\\''+emailEnc+'\\')"><td><div class="log-user clickable"><div class="log-user-avatar">'+avatarHtml(l.admin_email||'',initial)+'</div><div class="log-user-info"><div class="log-user-name">'+name+'</div><div class="log-user-email">'+(l.admin_email||'')+'</div></div></div></td><td><span class="log-platform" style="background:'+color+'20;color:'+color+'">'+icon+' '+cat+'</span></td><td class="log-action">'+actionText+detailsHtml+'</td><td class="log-time">'+time+'</td></tr>';
   });
   tbody.innerHTML=html;
+  
+  // Pagination controls
+  var pgHtml='<div class="pg-info">แสดง '+(start+1)+'-'+Math.min(start+logsPerPage,filtered.length)+' จาก '+filtered.length+' รายการ</div><div class="pg-btns">';
+  if(logsPage>1)pgHtml+='<button class="pg-btn" onclick="goLogsPage(1)">«</button><button class="pg-btn" onclick="goLogsPage('+(logsPage-1)+')">‹</button>';
+  var startP=Math.max(1,logsPage-2);
+  var endP=Math.min(totalPages,logsPage+2);
+  for(var p=startP;p<=endP;p++){
+    pgHtml+='<button class="pg-btn'+(p===logsPage?' pg-active':'')+'" onclick="goLogsPage('+p+')">'+p+'</button>';
+  }
+  if(logsPage<totalPages)pgHtml+='<button class="pg-btn" onclick="goLogsPage('+(logsPage+1)+')">›</button><button class="pg-btn" onclick="goLogsPage('+totalPages+')">»</button>';
+  pgHtml+='</div>';
+  document.getElementById('logs-pagination').innerHTML=pgHtml;
 }
+
+function goLogsPage(p){logsPage=p;renderLogsTable();document.getElementById('logs-tbody').scrollIntoView({behavior:'smooth',block:'start'});}
 
 function filterLogs(f){
   currentLogFilter=f;
+  logsPage=1;
   document.querySelectorAll('.filter-chip').forEach(function(b){b.classList.remove('active');});
   document.querySelector('.filter-chip[data-filter="'+f+'"]').classList.add('active');
   renderLogsTable();
