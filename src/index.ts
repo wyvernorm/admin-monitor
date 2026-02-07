@@ -700,22 +700,40 @@ app.get('/api/public/monitor-stats', async (c) => {
   try {
     const db = c.env.DB;
     const daysParam = c.req.query('days') || '7';
+    const monthParam = c.req.query('month') || ''; // e.g. 2026-02
     const isAll = daysParam.toLowerCase() === 'all';
     const days = isAll ? null : Math.min(Math.max(Number(daysParam), 1), 9999);
     
-    // นับจำนวนครั้งที่แต่ละคนเพิ่มงาน Monitor
-    const query = isAll
-      ? `SELECT admin_email, MAX(admin_name) as admin_name, COUNT(*) as monitor_count, MAX(created_at) as last_action, MIN(created_at) as first_action
-         FROM activity_logs WHERE category = 'monitor' AND action = 'เพิ่มงาน Monitor'
-         GROUP BY admin_email ORDER BY monitor_count DESC`
-      : `SELECT admin_email, MAX(admin_name) as admin_name, COUNT(*) as monitor_count, MAX(created_at) as last_action, MIN(created_at) as first_action
-         FROM activity_logs WHERE category = 'monitor' AND action = 'เพิ่มงาน Monitor'
-         AND created_at >= datetime('now', '-' || ? || ' days')
-         GROUP BY admin_email ORDER BY monitor_count DESC`;
+    // Build WHERE clause based on params
+    let whereExtra = '';
+    let bindValues: any[] = [];
+    let periodLabel = '';
     
-    const result = isAll
-      ? await db.prepare(query).all()
-      : await db.prepare(query).bind(days).all();
+    if (monthParam && /^\d{4}-\d{2}$/.test(monthParam)) {
+      // Filter by month: ?month=2026-02
+      whereExtra = `AND created_at >= ? AND created_at < ?`;
+      const [y, m] = monthParam.split('-').map(Number);
+      const nextMonth = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`;
+      bindValues = [`${monthParam}-01`, nextMonth];
+      periodLabel = monthParam;
+    } else if (isAll) {
+      periodLabel = 'all';
+    } else {
+      whereExtra = `AND created_at >= datetime('now', '-' || ? || ' days')`;
+      bindValues = [days];
+      periodLabel = days + ' days';
+    }
+    
+    const query = `
+      SELECT admin_email, MAX(admin_name) as admin_name, COUNT(*) as monitor_count, 
+             MAX(created_at) as last_action, MIN(created_at) as first_action
+      FROM activity_logs 
+      WHERE category = 'monitor' AND action = 'เพิ่มงาน Monitor' ${whereExtra}
+      GROUP BY admin_email ORDER BY monitor_count DESC
+    `;
+    
+    const stmt = db.prepare(query);
+    const result = bindValues.length > 0 ? await stmt.bind(...bindValues).all() : await stmt.all();
 
     const users = ((result.results || []) as any[]).map(r => ({
       email: r.admin_email,
@@ -728,7 +746,7 @@ app.get('/api/public/monitor-stats', async (c) => {
     const total = users.reduce((sum, u) => sum + u.count, 0);
 
     return c.json({
-      period: isAll ? 'all' : days + ' days',
+      period: periodLabel,
       total_monitor_adds: total,
       users,
       generated_at: new Date().toISOString(),
