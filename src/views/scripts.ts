@@ -11,6 +11,63 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// ============= CSRF TOKEN EXPIRY DETECTION =============
+var sessionExpired = false;
+
+function showSessionExpiredWarning() {
+  if (sessionExpired) return;
+  sessionExpired = true;
+  
+  var overlay = document.createElement('div');
+  overlay.className = 'session-expired-overlay';
+  
+  var modal = document.createElement('div');
+  modal.className = 'session-expired-modal';
+  
+  var icon = document.createElement('div');
+  icon.className = 'session-expired-icon';
+  icon.textContent = '⏰';
+  
+  var title = document.createElement('h2');
+  title.className = 'session-expired-title';
+  title.textContent = 'Session หมดอายุ';
+  
+  var message = document.createElement('p');
+  message.className = 'session-expired-message';
+  message.textContent = 'กรุณา Refresh หน้านี้เพื่อทำงานต่อ';
+  
+  var actions = document.createElement('div');
+  actions.className = 'session-expired-actions';
+  
+  var btn = document.createElement('button');
+  btn.className = 'btn-primary';
+  btn.textContent = '🔄 Refresh หน้านี้';
+  btn.onclick = function() { location.reload(); };
+  
+  actions.appendChild(btn);
+  modal.appendChild(icon);
+  modal.appendChild(title);
+  modal.appendChild(message);
+  modal.appendChild(actions);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  
+  setTimeout(function() {
+    location.reload();
+  }, 10000);
+}
+
+function getCsrfToken() {
+  var cookies = document.cookie.split(';');
+  for (var i = 0; i < cookies.length; i++) {
+    var cookie = cookies[i].trim();
+    if (cookie.startsWith('csrf_token=')) {
+      return cookie.substring('csrf_token='.length);
+    }
+  }
+  return null;
+}
+
 // Avatar helper: show Google profile picture if available, else initial letter
 function avatarHtml(email,initial){
   var pic=pictureMap[email];
@@ -342,12 +399,32 @@ var API={
     for(var i=0;i<=retries;i++){
       try{
         var r=await fetch('/api/'+endpoint,opts);
+        
+        // ✅ CSRF Token Expiry Detection
+        if(r.status===403){
+          var errData=await r.json().catch(function(){return{};});
+          if(errData.error&&errData.error.indexOf('CSRF')>-1){
+            console.error('[SESSION] CSRF token mismatch - Session expired');
+            showSessionExpiredWarning();
+            throw new Error('Session หมดอายุ กรุณา Refresh หน้านี้');
+          }
+        }
+        
+        // ✅ Unauthorized - Session expired
+        if(r.status===401){
+          console.error('[SESSION] Unauthorized - Session expired');
+          showSessionExpiredWarning();
+          throw new Error('Session หมดอายุ กรุณา Refresh หน้านี้');
+        }
+        
         if(!r.ok){
           var err=await r.json().catch(function(){return{error:'HTTP '+r.status};});
           throw new Error(err.error||'Request failed');
         }
         return await r.json();
       }catch(e){
+        // Don't retry if session expired
+        if(e.message.indexOf('Session หมดอายุ')>-1)throw e;
         if(i===retries)throw e;
         await new Promise(function(res){setTimeout(res,1000*(i+1));});
       }

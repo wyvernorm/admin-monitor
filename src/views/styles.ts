@@ -526,4 +526,17 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .pg-btn{background:var(--input);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;transition:all .2s}
 .pg-btn:hover{background:var(--card);border-color:var(--accent)}
 .pg-btn.pg-active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+
+/* ============= SESSION EXPIRED MODAL ============= */
+.session-expired-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:99999;animation:fadeIn 0.3s ease}
+.session-expired-modal{background:linear-gradient(145deg,var(--card),var(--sidebar));border:1px solid var(--accent);border-radius:20px;padding:40px;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 100px rgba(34,197,94,0.2);animation:slideUp 0.4s ease}
+.session-expired-icon{font-size:72px;margin-bottom:20px;animation:pulse 2s infinite}
+.session-expired-title{font-size:24px;font-weight:800;color:var(--text);margin-bottom:12px}
+.session-expired-message{font-size:14px;color:var(--muted);margin-bottom:28px;line-height:1.6}
+.session-expired-actions{display:flex;gap:12px;justify-content:center}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--cyan));color:#000;border:none;padding:14px 32px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 15px rgba(34,197,94,0.3)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(34,197,94,0.4)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 `;
