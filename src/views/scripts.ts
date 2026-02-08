@@ -413,22 +413,12 @@ var API={
       try{
         var r=await fetch('/api/'+endpoint,opts);
         
-        // ✅ CSRF Token Expiry Detection
-        if(r.status===403){
-          var errData=await r.json().catch(function(){return{};});
-          if(errData.error&&errData.error.indexOf('CSRF')>-1){
-            console.error('[SESSION] CSRF token mismatch - Session expired');
-            showSessionExpiredWarning();
-            throw new Error('Session หมดอายุ กรุณา Refresh หน้านี้');
-        
         if(!r.ok){
           var err=await r.json().catch(function(){return{error:'HTTP '+r.status};});
           throw new Error(err.error||'Request failed');
         }
         return await r.json();
       }catch(e){
-        // Don't retry if session expired
-        if(e.message.indexOf('Session หมดอายุ')>-1)throw e;
         if(i===retries)throw e;
         await new Promise(function(res){setTimeout(res,1000*(i+1));});
       }
