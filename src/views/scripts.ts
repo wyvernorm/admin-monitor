@@ -420,15 +420,6 @@ var API={
             console.error('[SESSION] CSRF token mismatch - Session expired');
             showSessionExpiredWarning();
             throw new Error('Session หมดอายุ กรุณา Refresh หน้านี้');
-          }
-        }
-        
-        // ✅ Unauthorized - Session expired
-        if(r.status===401){
-          console.error('[SESSION] Unauthorized - Session expired');
-          showSessionExpiredWarning();
-          throw new Error('Session หมดอายุ กรุณา Refresh หน้านี้');
-        }
         
         if(!r.ok){
           var err=await r.json().catch(function(){return{error:'HTTP '+r.status};});
