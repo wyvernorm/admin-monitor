@@ -15,43 +15,26 @@ function escapeHtml(text) {
 var sessionExpired = false;
 
 function showSessionExpiredWarning() {
-  if (sessionExpired) return;
+  if (sessionExpired) return; // แสดงแค่ครั้งเดียว
   sessionExpired = true;
   
   var overlay = document.createElement('div');
   overlay.className = 'session-expired-overlay';
-  
-  var modal = document.createElement('div');
-  modal.className = 'session-expired-modal';
-  
-  var icon = document.createElement('div');
-  icon.className = 'session-expired-icon';
-  icon.textContent = '⏰';
-  
-  var title = document.createElement('h2');
-  title.className = 'session-expired-title';
-  title.textContent = 'Session หมดอายุ';
-  
-  var message = document.createElement('p');
-  message.className = 'session-expired-message';
-  message.textContent = 'กรุณา Refresh หน้านี้เพื่อทำงานต่อ';
-  
-  var actions = document.createElement('div');
-  actions.className = 'session-expired-actions';
-  
-  var btn = document.createElement('button');
-  btn.className = 'btn-primary';
-  btn.textContent = '🔄 Refresh หน้านี้';
-  btn.onclick = function() { location.reload(); };
-  
-  actions.appendChild(btn);
-  modal.appendChild(icon);
-  modal.appendChild(title);
-  modal.appendChild(message);
-  modal.appendChild(actions);
-  overlay.appendChild(modal);
+  overlay.innerHTML = `
+    <div class="session-expired-modal">
+      <div class="session-expired-icon">⏰</div>
+      <h2 class="session-expired-title">Session หมดอายุ</h2>
+      <p class="session-expired-message">กรุณา Refresh หน้านี้เพื่อทำงานต่อ</p>
+      <div class="session-expired-actions">
+        <button onclick="location.reload()" class="btn-primary">
+          🔄 Refresh หน้านี้
+        </button>
+      </div>
+    </div>
+  `;
   document.body.appendChild(overlay);
   
+  // Auto reload หลัง 10 วินาที
   setTimeout(function() {
     location.reload();
   }, 10000);
@@ -153,17 +136,10 @@ function showBadgeEarned(badge){
 function toThaiTime(dateStr){
   if(!dateStr)return '';
   try{
-    // SQLite datetime('now') returns UTC without 'Z', so we add it
-    var utcStr = dateStr;
-    if (!utcStr.endsWith('Z') && !utcStr.includes('+')) {
-      utcStr = utcStr.replace(' ', 'T') + 'Z';
-    }
-    
-    return new Date(utcStr).toLocaleString('th-TH',{
+    return new Date(dateStr).toLocaleString('th-TH',{
       timeZone:'Asia/Bangkok',
       day:'numeric',
       month:'short',
-      year:'numeric',
       hour:'2-digit',
       minute:'2-digit'
     });
@@ -175,13 +151,7 @@ function toThaiTime(dateStr){
 function toThaiDate(dateStr){
   if(!dateStr)return '';
   try{
-    // SQLite datetime('now') returns UTC without 'Z', so we add it
-    var utcStr = dateStr;
-    if (!utcStr.endsWith('Z') && !utcStr.includes('+')) {
-      utcStr = utcStr.replace(' ', 'T') + 'Z';
-    }
-    
-    return new Date(utcStr).toLocaleDateString('th-TH',{
+    return new Date(dateStr).toLocaleDateString('th-TH',{
       timeZone:'Asia/Bangkok',
       day:'numeric',
       month:'short',
