@@ -40,16 +40,16 @@ export interface SessionUser {
 export interface Order {
   id: number;
   url: string;
-  view_target: number;
-  view_current: number;
-  like_target: number;
-  like_current: number;
+  view_target?: number | null;
+  view_current?: number | null;
+  like_target?: number | null;
+  like_current?: number | null;
   status: 'running' | 'done' | 'paused';
-  line_id: string;
-  notified: 'yes' | 'no';
-  created_at: string;
-  updated_at: string;
-  completed_at: string | null;
+  line_id?: string | null;
+  notified?: 'yes' | 'no';
+  created_at?: string;
+  updated_at?: string;
+  completed_at?: string | null;
 }
 
 export interface ActivityLog {

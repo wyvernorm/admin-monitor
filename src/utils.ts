@@ -3,6 +3,203 @@
 
 import type { SessionUser } from './types';
 
+// ============= SECURITY UTILITIES =============
+
+/**
+ * Escape HTML to prevent XSS attacks
+ */
+export function escapeHtml(unsafe: string): string {
+  if (!unsafe) return '';
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Sanitize URL to prevent javascript: and data: schemes
+ */
+export function sanitizeUrl(url: string): string | null {
+  if (!url) return null;
+  
+  const trimmed = url.trim().toLowerCase();
+  
+  // Block dangerous protocols
+  const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:'];
+  if (dangerousProtocols.some(protocol => trimmed.startsWith(protocol))) {
+    return null;
+  }
+  
+  // Only allow http(s) and relative URLs
+  if (!trimmed.startsWith('http://') && 
+      !trimmed.startsWith('https://') && 
+      !trimmed.startsWith('/')) {
+    return null;
+  }
+  
+  return url.trim();
+}
+
+/**
+ * Validate YouTube URL
+ */
+export function validateYouTubeUrl(url: string): { valid: boolean; error?: string; value?: string } {
+  if (!url || typeof url !== 'string') {
+    return { valid: false, error: 'URL is required' };
+  }
+  
+  const sanitized = sanitizeUrl(url);
+  if (!sanitized) {
+    return { valid: false, error: 'Invalid URL format' };
+  }
+  
+  if (sanitized.length > 2048) {
+    return { valid: false, error: 'URL is too long' };
+  }
+  
+  const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
+  if (!youtubeRegex.test(sanitized)) {
+    return { valid: false, error: 'Not a valid YouTube URL' };
+  }
+  
+  return { valid: true, value: sanitized };
+}
+
+/**
+ * Validate TikTok URL
+ */
+export function validateTikTokUrl(url: string): { valid: boolean; error?: string; value?: string } {
+  if (!url || typeof url !== 'string') {
+    return { valid: false, error: 'URL is required' };
+  }
+  
+  const sanitized = sanitizeUrl(url);
+  if (!sanitized) {
+    return { valid: false, error: 'Invalid URL format' };
+  }
+  
+  if (sanitized.length > 2048) {
+    return { valid: false, error: 'URL is too long' };
+  }
+  
+  const tiktokRegex = /^(https?:\/\/)?(www\.)?(tiktok\.com|vt\.tiktok\.com)\/.+/;
+  if (!tiktokRegex.test(sanitized)) {
+    return { valid: false, error: 'Not a valid TikTok URL' };
+  }
+  
+  return { valid: true, value: sanitized };
+}
+
+/**
+ * Validate Facebook URL
+ */
+export function validateFacebookUrl(url: string): { valid: boolean; error?: string; value?: string } {
+  if (!url || typeof url !== 'string') {
+    return { valid: false, error: 'URL is required' };
+  }
+  
+  const sanitized = sanitizeUrl(url);
+  if (!sanitized) {
+    return { valid: false, error: 'Invalid URL format' };
+  }
+  
+  if (sanitized.length > 2048) {
+    return { valid: false, error: 'URL is too long' };
+  }
+  
+  const facebookRegex = /^(https?:\/\/)?(www\.)?facebook\.com\/.+/;
+  if (!facebookRegex.test(sanitized)) {
+    return { valid: false, error: 'Not a valid Facebook URL' };
+  }
+  
+  return { valid: true, value: sanitized };
+}
+
+/**
+ * Validate Instagram URL
+ */
+export function validateInstagramUrl(url: string): { valid: boolean; error?: string; value?: string } {
+  if (!url || typeof url !== 'string') {
+    return { valid: false, error: 'URL is required' };
+  }
+  
+  const sanitized = sanitizeUrl(url);
+  if (!sanitized) {
+    return { valid: false, error: 'Invalid URL format' };
+  }
+  
+  if (sanitized.length > 2048) {
+    return { valid: false, error: 'URL is too long' };
+  }
+  
+  const instagramRegex = /^(https?:\/\/)?(www\.)?instagram\.com\/.+/;
+  if (!instagramRegex.test(sanitized)) {
+    return { valid: false, error: 'Not a valid Instagram URL' };
+  }
+  
+  return { valid: true, value: sanitized };
+}
+
+/**
+ * Validate positive integer
+ */
+export function validatePositiveInt(value: any, fieldName: string): { valid: boolean; value?: number; error?: string } {
+  if (value === null || value === undefined || value === '') {
+    return { valid: false, error: `${fieldName} is required` };
+  }
+  
+  const num = Number(value);
+  
+  if (!Number.isInteger(num)) {
+    return { valid: false, error: `${fieldName} must be an integer` };
+  }
+  
+  if (num <= 0) {
+    return { valid: false, error: `${fieldName} must be positive` };
+  }
+  
+  if (num > 10000000) {
+    return { valid: false, error: `${fieldName} is too large` };
+  }
+  
+  return { valid: true, value: num };
+}
+
+/**
+ * Safe JSON parse with fallback
+ */
+export function safeJsonParse<T>(json: string | null, fallback: T): T {
+  if (!json) return fallback;
+  try {
+    return JSON.parse(json) as T;
+  } catch (e) {
+    console.error('[SAFE_JSON_PARSE] Failed to parse:', e);
+    return fallback;
+  }
+}
+
+/**
+ * Constants
+ */
+export const CONSTANTS = {
+  RATE_LIMIT: {
+    MAX_REQUESTS_PER_MINUTE: 10,
+    WINDOW_TTL: 60,
+  },
+  CACHE: {
+    VIDEO_STATS_TTL: 300, // 5 minutes
+    CHANNEL_STATS_TTL: 600, // 10 minutes
+    TEMPLATE_TTL: 3600, // 1 hour
+  },
+  VALIDATION: {
+    MAX_TARGET_VALUE: 10000000,
+    MIN_TARGET_VALUE: 1,
+    MAX_URL_LENGTH: 2048,
+  },
+} as const;
+
 // ---------- Video ID Extraction ----------
 export function extractVideoId(url: string): string | null {
   if (url.includes('watch?v=')) return url.split('watch?v=')[1].split('&')[0];

@@ -1,5 +1,11 @@
 import { Hono } from 'hono';
-import { extractVideoId, extractChannelId, isChannelUrl } from '../utils';
+import { 
+  extractVideoId, 
+  extractChannelId, 
+  isChannelUrl, 
+  validateYouTubeUrl,
+  CONSTANTS 
+} from '../utils';
 import type { Bindings, Variables } from '../types';
 
 export const youtubeRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -8,25 +14,29 @@ export const youtubeRoutes = new Hono<{ Bindings: Bindings; Variables: Variables
 youtubeRoutes.post('/stats', async (c) => {
   try {
     const { url } = await c.req.json();
-    if (!url) {
-      return c.json({ error: 'URL is required' }, 400);
+    
+    // Validate URL
+    const validation = validateYouTubeUrl(url);
+    if (!validation.valid) {
+      return c.json({ error: validation.error }, 400);
     }
 
     const API_KEY = c.env.YOUTUBE_API_KEY;
     const cache = c.env.ADMIN_MONITOR_CACHE;
+    const validatedUrl = validation.value!;
 
     // Check if it's a channel URL
-    if (isChannelUrl(url)) {
-      return getChannelStats(url, API_KEY, cache, c);
+    if (isChannelUrl(validatedUrl)) {
+      return getChannelStats(validatedUrl, API_KEY, cache, c);
     }
 
     // Video stats
-    const videoId = extractVideoId(url);
+    const videoId = extractVideoId(validatedUrl);
     if (!videoId) {
       return c.json({ error: 'Invalid YouTube URL' }, 400);
     }
 
-    // Check cache first (5 minutes)
+    // Check cache first
     const cacheKey = `youtube_video_${videoId}`;
     const cached = await cache?.get(cacheKey);
     if (cached) {

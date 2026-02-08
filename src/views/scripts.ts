@@ -3,6 +3,14 @@ export const scripts = `
 var user=null,lastYT=null,NL=String.fromCharCode(10),usedFB=[],usedIG=[],currentLogFilter='all',ttCache={},allLogs=[],nameMap={},pictureMap={};
 var prevRanks={},earnedBadges=(function(){try{return JSON.parse(localStorage.getItem('earnedBadges')||'[]');}catch(e){return [];}})();
 
+// ============= SECURITY HELPER =============
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Avatar helper: show Google profile picture if available, else initial letter
 function avatarHtml(email,initial){
   var pic=pictureMap[email];
@@ -32,7 +40,23 @@ function fireBadgeConfetti(){
 function showCelebration(title,message){
   var el=document.createElement('div');
   el.className='celebration-popup';
-  el.innerHTML='<div class="celeb-icon">🎉</div><div class="celeb-title">'+title+'</div><div class="celeb-msg">'+message+'</div>';
+  
+  var iconDiv=document.createElement('div');
+  iconDiv.className='celeb-icon';
+  iconDiv.textContent='🎉';
+  
+  var titleDiv=document.createElement('div');
+  titleDiv.className='celeb-title';
+  titleDiv.textContent=title;
+  
+  var msgDiv=document.createElement('div');
+  msgDiv.className='celeb-msg';
+  msgDiv.textContent=message;
+  
+  el.appendChild(iconDiv);
+  el.appendChild(titleDiv);
+  el.appendChild(msgDiv);
+  
   document.body.appendChild(el);
   fireConfettiBig();
   setTimeout(function(){el.classList.add('show');},10);
@@ -41,26 +65,62 @@ function showCelebration(title,message){
 function showBadgeEarned(badge){
   var el=document.createElement('div');
   el.className='badge-earned-popup';
-  el.innerHTML='<div class="badge-earned-icon new-badge">'+badge.icon+'</div><div class="badge-earned-info"><div class="badge-earned-title">🏅 ได้รับ Badge ใหม่!</div><div class="badge-earned-name">'+badge.name+'</div></div>';
+  
+  var iconDiv=document.createElement('div');
+  iconDiv.className='badge-earned-icon new-badge';
+  iconDiv.textContent=badge.icon;
+  
+  var infoDiv=document.createElement('div');
+  infoDiv.className='badge-earned-info';
+  
+  var titleDiv=document.createElement('div');
+  titleDiv.className='badge-earned-title';
+  titleDiv.textContent='🏅 ได้รับ Badge ใหม่!';
+  
+  var nameDiv=document.createElement('div');
+  nameDiv.className='badge-earned-name';
+  nameDiv.textContent=badge.name;
+  
+  infoDiv.appendChild(titleDiv);
+  infoDiv.appendChild(nameDiv);
+  el.appendChild(iconDiv);
+  el.appendChild(infoDiv);
+  
   document.body.appendChild(el);
   fireBadgeConfetti();
   setTimeout(function(){el.classList.add('show');},10);
   setTimeout(function(){el.classList.remove('show');setTimeout(function(){el.remove();},300);},3500);
 }
 
-// Convert UTC to GMT+7 (Thailand)
+// Convert UTC to GMT+7 (Thailand) - FIXED: Use Intl API
 function toThaiTime(dateStr){
   if(!dateStr)return '';
-  var d=new Date(dateStr);
-  // Add 7 hours for GMT+7
-  d.setHours(d.getHours()+7);
-  return d.toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  try{
+    return new Date(dateStr).toLocaleString('th-TH',{
+      timeZone:'Asia/Bangkok',
+      day:'numeric',
+      month:'short',
+      hour:'2-digit',
+      minute:'2-digit'
+    });
+  }catch(e){
+    console.error('[toThaiTime] Error:',e);
+    return dateStr;
+  }
 }
 function toThaiDate(dateStr){
   if(!dateStr)return '';
-  var d=new Date(dateStr);
-  d.setHours(d.getHours()+7);
-  return d.toLocaleDateString('th-TH',{day:'numeric',month:'short'});
+  try{
+    return new Date(dateStr).toLocaleDateString('th-TH',{
+      timeZone:'Asia/Bangkok',
+      day:'numeric',
+      month:'short',
+      year:'numeric'
+    });
+  }catch(e){
+    console.error('[toThaiDate] Error:',e);
+    return dateStr;
+  }
 }
 
 // ==================== GAMIFICATION SYSTEM ====================

@@ -71,12 +71,12 @@ logs.get('/', async (c) => {
     `).all();
 
     // Merge advanced stats
-    const dailyMaxMap = {};
-    const hourlyMaxMap = {};
-    (dailyMaxResult.results || []).forEach(r => { dailyMaxMap[r.admin_email] = r.max_daily; });
-    (hourlyMaxResult.results || []).forEach(r => { hourlyMaxMap[r.admin_email] = r.max_hourly; });
+    const dailyMaxMap: Record<string, number> = {};
+    const hourlyMaxMap: Record<string, number> = {};
+    (dailyMaxResult.results || []).forEach((r: any) => { dailyMaxMap[r.admin_email] = r.max_daily; });
+    (hourlyMaxResult.results || []).forEach((r: any) => { hourlyMaxMap[r.admin_email] = r.max_hourly; });
 
-    const enrichedStats = (statsResult.results || []).map((s, index) => ({
+    const enrichedStats = (statsResult.results || []).map((s: any, index: number) => ({
       ...s,
       max_daily: dailyMaxMap[s.admin_email] || 0,
       max_hourly: hourlyMaxMap[s.admin_email] || 0,

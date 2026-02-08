@@ -16,9 +16,9 @@ export async function checkAllOrdersScheduled(env: Bindings): Promise<CronResult
   try {
     const result = await db.prepare(`
       SELECT * FROM orders WHERE status = 'running'
-    `).all();
+    `).all<Order>();
 
-    const orders = (result.results || []) as Order[];
+    const orders = result.results || [];
     console.log(`[CRON] Found ${orders.length} running orders`);
 
     let completedCount = 0;
@@ -197,9 +197,9 @@ export async function checkStaleOrders(env: Bindings) {
       SELECT * FROM orders 
       WHERE status = 'running' 
       AND created_at < datetime('now', '-48 hours')
-    `).all();
+    `).all<Order>();
 
-    const staleOrders = (result.results || []) as Order[];
+    const staleOrders = result.results || [];
     if (staleOrders.length === 0) return;
 
     const lastStaleAlert = await env.ADMIN_MONITOR_CACHE.get('last_stale_alert');
@@ -215,7 +215,7 @@ export async function checkStaleOrders(env: Bindings) {
     text += `📋 พบ <b>${staleOrders.length}</b> งานที่ยังไม่เสร็จ\n\n`;
 
     for (const order of staleOrders) {
-      const created = new Date(order.created_at);
+      const created = new Date(order.created_at || new Date());
       created.setHours(created.getHours() + 7);
       const hoursAgo = Math.floor((now.getTime() - created.getTime()) / 3600000);
       const daysAgo = Math.floor(hoursAgo / 24);
@@ -305,10 +305,10 @@ export async function sendDailyReport(env: Bindings) {
     text += `   ⏳ กำลังทำ: <b>${running?.c || 0}</b> งาน\n`;
     text += `   ✅ เสร็จแล้ว: <b>${done?.c || 0}</b> งาน\n`;
     if ((stale?.c || 0) > 0) {
-      text += `   ⚠️ ค้างเกิน 48 ชม.: <b>${stale.c}</b> งาน\n`;
+      text += `   ⚠️ ค้างเกิน 48 ชม.: <b>${stale!.c}</b> งาน\n`;
     }
     if ((nearComplete?.c || 0) > 0) {
-      text += `   🔥 ใกล้เสร็จ (90%+): <b>${nearComplete.c}</b> งาน\n`;
+      text += `   🔥 ใกล้เสร็จ (90%+): <b>${nearComplete!.c}</b> งาน\n`;
     }
     text += `\n`;
 

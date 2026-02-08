@@ -518,13 +518,13 @@ app.get('/api/analytics', async (c) => {
     const thisWeek = await db.prepare(`
       SELECT COUNT(*) as count FROM activity_logs 
       WHERE created_at >= datetime('now', '-7 days')
-    `).first();
+    `).first() as { count: number } | null;
     
     const lastWeek = await db.prepare(`
       SELECT COUNT(*) as count FROM activity_logs 
       WHERE created_at >= datetime('now', '-14 days') 
       AND created_at < datetime('now', '-7 days')
-    `).first();
+    `).first() as { count: number } | null;
     
     return c.json({
       daily: dailyStats.results || [],
@@ -532,10 +532,10 @@ app.get('/api/analytics', async (c) => {
       topActions: topActions.results || [],
       totals: totals || {},
       comparison: {
-        thisWeek: thisWeek?.count || 0,
-        lastWeek: lastWeek?.count || 0,
+        thisWeek: (thisWeek?.count as number) || 0,
+        lastWeek: (lastWeek?.count as number) || 0,
         change: thisWeek && lastWeek ? 
-          Math.round(((thisWeek.count - lastWeek.count) / (lastWeek.count || 1)) * 100) : 0
+          Math.round((((thisWeek.count as number) - (lastWeek.count as number)) / ((lastWeek.count as number) || 1)) * 100) : 0
       }
     });
   } catch (error: any) {
