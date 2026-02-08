@@ -538,7 +538,80 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(34,197,94,0.4)}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+
+/* ============= GAMIFICATION V2 STYLES ============= */
+.levelup-popup{position:fixed;inset:0;background:rgba(0,0,0,0.9);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;z-index:10001;opacity:0;transition:opacity 0.4s ease}
+.levelup-popup.show{opacity:1}
+.levelup-content{background:linear-gradient(145deg,#1e293b,#0f172a);border:2px solid #fbbf24;border-radius:24px;padding:48px;text-align:center;max-width:500px;box-shadow:0 25px 75px rgba(251,191,36,0.4),0 0 100px rgba(251,191,36,0.3);animation:slideUpBounce 0.6s cubic-bezier(0.68,-0.55,0.265,1.55)}
+.levelup-icon{font-size:120px;margin-bottom:24px;filter:drop-shadow(0 0 30px rgba(251,191,36,0.6))}
+.levelup-title{font-size:42px;font-weight:900;background:linear-gradient(135deg,#fbbf24,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:16px;letter-spacing:2px}
+.levelup-level{font-size:28px;font-weight:700;color:#e5e7eb;margin-bottom:20px}
+.levelup-perks{font-size:16px;color:#10b981;background:rgba(16,185,129,0.1);padding:12px 24px;border-radius:12px;margin-bottom:32px;border:1px solid rgba(16,185,129,0.3)}
+.levelup-btn{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#000;border:none;padding:16px 48px;border-radius:12px;font-size:18px;font-weight:700;cursor:pointer;transition:all 0.3s ease;box-shadow:0 6px 20px rgba(251,191,36,0.4)}
+.levelup-btn:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(251,191,36,0.6)}
+.quest-complete-popup{position:fixed;top:100px;right:24px;background:linear-gradient(145deg,#1e293b,#0f172a);border:2px solid #10b981;border-radius:16px;padding:20px 24px;min-width:320px;box-shadow:0 10px 40px rgba(16,185,129,0.3);opacity:0;transform:translateX(100%);transition:all 0.4s cubic-bezier(0.68,-0.55,0.265,1.55);z-index:10000}
+.quest-complete-popup.show{opacity:1;transform:translateX(0)}
+.quest-icon{font-size:48px;text-align:center;margin-bottom:12px;animation:bounce 0.6s ease}
+.quest-title{font-size:18px;font-weight:800;color:#10b981;text-align:center;margin-bottom:8px;letter-spacing:1px}
+.quest-name{font-size:16px;color:#e5e7eb;text-align:center;margin-bottom:8px}
+.quest-reward{font-size:14px;color:#fbbf24;text-align:center;font-weight:600}
+.xp-container{background:var(--input);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px}
+.xp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.xp-level{font-size:14px;font-weight:700;color:var(--text)}
+.xp-progress{font-size:12px;color:var(--dim)}
+.xp-bar{height:12px;background:var(--border);border-radius:6px;overflow:hidden;position:relative}
+.xp-bar-fill{height:100%;background:linear-gradient(90deg,#fbbf24,#f59e0b);border-radius:6px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1);box-shadow:0 0 10px rgba(251,191,36,0.5);position:relative;overflow:hidden}
+.xp-bar-fill::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);animation:shimmer 2s infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.badge-rarity-common{border-color:#9ca3af;box-shadow:0 0 15px rgba(156,163,175,0.3)}
+.badge-rarity-uncommon{border-color:#10b981;box-shadow:0 0 15px rgba(16,185,129,0.4)}
+.badge-rarity-rare{border-color:#3b82f6;box-shadow:0 0 15px rgba(59,130,246,0.5);animation:glowBlue 2s infinite}
+.badge-rarity-epic{border-color:#a855f7;box-shadow:0 0 15px rgba(168,85,247,0.6);animation:glowPurple 2s infinite}
+.badge-rarity-legendary{border-color:#fbbf24;box-shadow:0 0 20px rgba(251,191,36,0.7);animation:glowGold 2s infinite}
+@keyframes glowBlue{0%,100%{box-shadow:0 0 15px rgba(59,130,246,0.5)}50%{box-shadow:0 0 25px rgba(59,130,246,0.8)}}
+@keyframes glowPurple{0%,100%{box-shadow:0 0 15px rgba(168,85,247,0.6)}50%{box-shadow:0 0 30px rgba(168,85,247,0.9)}}
+@keyframes glowGold{0%,100%{box-shadow:0 0 20px rgba(251,191,36,0.7)}50%{box-shadow:0 0 40px rgba(251,191,36,1)}}
+.achievement-card{background:var(--input);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;transition:all 0.3s ease}
+.achievement-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.achievement-card.completed{border-color:var(--accent);background:rgba(34,197,94,0.05)}
+.achievement-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.achievement-icon{font-size:32px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:var(--card)}
+.achievement-info{flex:1}
+.achievement-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+.achievement-desc{font-size:12px;color:var(--dim)}
+.achievement-progress{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:6px}
+.achievement-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;transition:width 0.6s ease}
+.achievement-progress-text{font-size:11px;color:var(--muted);text-align:right}
+.achievement-progress-text.completed{color:var(--accent);font-weight:600}
+.daily-quest-card{background:linear-gradient(145deg,#1e293b,#0f172a);border:2px solid transparent;border-radius:16px;padding:20px;margin-bottom:16px;position:relative;overflow:hidden;transition:all 0.3s ease}
+.daily-quest-card::before{content:'';position:absolute;inset:0;border-radius:16px;padding:2px;background:linear-gradient(135deg,#3b82f6,#8b5cf6,#ec4899);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0.5}
+.daily-quest-card.completed::before{background:linear-gradient(135deg,#10b981,#22c55e);opacity:1}
+.daily-quest-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.daily-quest-icon{font-size:28px}
+.daily-quest-info{flex:1}
+.daily-quest-name{font-size:15px;font-weight:700;color:var(--text)}
+.daily-quest-desc{font-size:12px;color:var(--muted)}
+.daily-quest-reward{font-size:13px;color:#fbbf24;font-weight:600}
+.daily-quest-progress{height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden}
+.daily-quest-progress-fill{height:100%;background:linear-gradient(90deg,#3b82f6,#8b5cf6);border-radius:3px;transition:width 0.4s ease}
+.daily-quest-progress-fill.completed{background:linear-gradient(90deg,#10b981,#22c55e)}
+.rank-change{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:2px 8px;border-radius:8px;font-weight:600}
+.rank-change.up{color:#10b981;background:rgba(16,185,129,0.1)}
+.rank-change.down{color:#ef4444;background:rgba(239,68,68,0.1)}
+.rank-change.same{color:var(--dim);background:rgba(156,163,175,0.1)}
+@keyframes slideUpBounce{0%{opacity:0;transform:translateY(100px) scale(0.8)}60%{opacity:1;transform:translateY(-10px) scale(1.05)}80%{transform:translateY(5px) scale(0.98)}100%{transform:translateY(0) scale(1)}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.rarity-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+.rarity-badge.common{background:#9ca3af;color:#000}
+.rarity-badge.uncommon{background:#10b981;color:#000}
+.rarity-badge.rare{background:#3b82f6;color:#fff}
+.rarity-badge.epic{background:#a855f7;color:#fff}
+.rarity-badge.legendary{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#000}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--input);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+.stat-value{font-size:28px;font-weight:800;color:var(--accent);margin-bottom:4px}
+.stat-label{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:0.5px}
+@media (max-width:640px){.levelup-content{padding:32px 24px;max-width:90%}.levelup-icon{font-size:80px}.levelup-title{font-size:32px}.quest-complete-popup{right:12px;left:12px;min-width:auto}.stats-grid{grid-template-columns:repeat(2,1fr)}}
 `;
 
 /* ============= GAMIFICATION V2 STYLES ============= */
