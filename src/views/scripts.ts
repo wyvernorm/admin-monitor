@@ -157,6 +157,7 @@ function toThaiTime(dateStr){
       timeZone:'Asia/Bangkok',
       day:'numeric',
       month:'short',
+      year:'numeric',
       hour:'2-digit',
       minute:'2-digit'
     });
